@@ -23,6 +23,7 @@ FILE: index.html
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/acicu-checkout.css') }}" />
   </head>
   <body>
     <!-- =========================
@@ -48,12 +49,36 @@ FILE: index.html
         <a data-target="contact" class="nav-link">Contact</a>
       </nav>
 
-      <div class="hamburger" id="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
+      <div class="nav-right-actions">
+        <button class="cart-toggle" id="cartToggle" aria-label="Keranjang">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+        </button>
+
+        <div class="hamburger" id="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
     </header>
+
+    <!-- CART PANEL -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <aside class="cart-panel" id="cartPanel">
+      <div class="cart-header">
+        <h2>Keranjang</h2>
+        <button class="cart-close" id="cartClose">&times;</button>
+      </div>
+      <div class="cart-body" id="cartBody"></div>
+      <div class="cart-footer" id="cartFooter" style="display:none;">
+        <div class="cart-subtotal">
+          <span>Subtotal</span>
+          <span id="cartSubtotal">Rp0</span>
+        </div>
+        <a href="/acicu/pre-order" class="btn-checkout" id="btnCheckout">Pre-Order Sekarang</a>
+      </div>
+    </aside>
 
     <!-- =========================
        HOME
@@ -182,6 +207,16 @@ FILE: index.html
                 khas yang cocok dinikmati sebagai teman bersantai ataupun
                 camilan sehari-hari
               </p>
+
+              <button
+                class="add-to-cart"
+                data-id="ciweng"
+                data-name="Ciweng Original Gurih"
+                data-price="10000"
+                data-image="{{ asset('src-acicu/ciweng.PNG') }}"
+              >
+                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
+              </button>
             </div>
 
             <div class="side-circle right">
@@ -207,6 +242,16 @@ FILE: index.html
                 lezat. Disajikan fresh setiap hari dengan perpaduan rasa yang
                 nikmat.
               </p>
+
+              <button
+                class="add-to-cart"
+                data-id="molachee"
+                data-name="Molachee Crispy Keju"
+                data-price="10000"
+                data-image="{{ asset('src-acicu/molachee.PNG') }}"
+              >
+                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
+              </button>
             </div>
 
             <div class="side-circle right">
@@ -231,6 +276,16 @@ FILE: index.html
                 Camilan gurih dengan tekstur renyah di luar dan lembut di dalam.
                 Cocok dinikmati saat santai bersama teman maupun keluarga.
               </p>
+
+              <button
+                class="add-to-cart"
+                data-id="cilukba"
+                data-name="Cilukba Pedas Manis"
+                data-price="10000"
+                data-image="{{ asset('src-acicu/cilukba.PNG') }}"
+              >
+                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
+              </button>
             </div>
 
             <div class="side-circle right">
@@ -361,5 +416,13 @@ FILE: index.html
 
     <!-- JS -->
     <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/acicu-checkout.js') }}"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof AcicuCheckout !== "undefined") {
+          AcicuCheckout.initCart();
+        }
+      });
+    </script>
   </body>
 </html>

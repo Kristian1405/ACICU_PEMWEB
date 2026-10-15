@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Content;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ContentController extends Controller
@@ -41,7 +42,7 @@ class ContentController extends Controller
         $counter = 1;
 
         while (Content::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         Content::create([
@@ -73,7 +74,7 @@ class ContentController extends Controller
 
         if ($request->hasFile('image')) {
             if ($content->image_path) {
-                \Illuminate\Support\Facades\Storage::disk('public')
+                Storage::disk('public')
                     ->delete($content->image_path);
             }
 
@@ -90,7 +91,7 @@ class ContentController extends Controller
                 ->where('id', '!=', $content->id)
                 ->exists()
         ) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $content->title = $validated['title'];
@@ -107,7 +108,7 @@ class ContentController extends Controller
     public function destroy(Content $content)
     {
         if ($content->image_path) {
-            \Illuminate\Support\Facades\Storage::disk('public')
+            Storage::disk('public')
                 ->delete($content->image_path);
         }
 
