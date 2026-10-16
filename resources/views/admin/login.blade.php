@@ -30,11 +30,17 @@
       <p class="admin-login-sub">Portal Resmi Admin &amp; Pengelola Dapur</p>
 
       {{--
-        CATATAN: Tampilan login ini belum terhubung ke backend autentikasi.
-        Sesuai kesepakatan, integrasi ke Laravel Fortify (POST /login) akan
-        dikerjakan terpisah. Form sengaja TIDAK berpura-pura berhasil.
+        Login memakai guard session Laravel. Akun dibuat lewat perintah
+        `php artisan acicu:admin <email>` atau lewat panel yang tersedia.
       --}}
-      <form id="adminLoginForm" class="admin-login-form" novalidate>
+      <form
+        id="adminLoginForm"
+        class="admin-login-form"
+        method="POST"
+        action="{{ route('admin.login.attempt') }}"
+        novalidate
+      >
+        @csrf
         <div>
           <label class="admin-label" for="loginUser">
             <i class="fa-regular fa-user"></i> Username / Email
@@ -46,6 +52,7 @@
               id="loginUser"
               name="username"
               autocomplete="username"
+              value="{{ old('username') }}"
               placeholder="Masukkan username atau email admin"
             />
           </div>
@@ -94,7 +101,10 @@
           Login ke Dashboard <i class="fa-solid fa-arrow-right"></i>
         </button>
 
-        <div class="admin-auth-notice" id="authNotice"></div>
+        <div
+          class="admin-auth-notice {{ $errors->any() ? 'show' : '' }}"
+          id="authNotice"
+        >{{ $errors->first() }}</div>
       </form>
 
       <div class="admin-login-note">

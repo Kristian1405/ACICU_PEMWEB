@@ -44,6 +44,9 @@ php artisan key:generate
 # Jalankan migrasi database
 php artisan migrate
 
+# Buat akun admin portal (opsional, untuk /admin/login)
+php artisan acicu:admin admin@acicu.test --name="Admin ACICU"
+
 # Build assets
 npm run build
 ```
@@ -97,6 +100,7 @@ references/              # Referensi desain UI
 - Pembayaran **QRIS otomatis via Midtrans Snap**
 - Pesanan tersimpan di **Cloud Firestore** (klien) + dibaca server (admin)
 - Verifikasi status otomatis (webhook Midtrans + fallback verify)
+- Panel admin dengan **login** (guard Laravel) & daftar pesanan dari Firestore
 - Tracking status pesanan
 - Timestamp WIB (Asia/Jakarta)
 - Jadwal persiapan & pengantaran

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\DashboardController;
@@ -46,21 +47,27 @@ Route::post('/midtrans/notification', [PaymentController::class, 'notification']
 
 /*
 |--------------------------------------------------------------------------
-| Portal Admin ACICU (fase tampilan/UI)
+| Portal Admin ACICU
 |--------------------------------------------------------------------------
-| Catatan: gate autentikasi admin belum tersedia. Halaman ini belum
-| dilindungi middleware dan hanya menampilkan empty state (tanpa data
-| server). Integrasi autentikasi Fortify akan dikerjakan pada tahap
-| berikutnya setelah disetujui.
+| Login memakai guard session Laravel (model User). Halaman admin
+| dilindungi middleware "auth" dan tamu diarahkan ke /admin/login
+| (lihat bootstrap/app.php -> redirectGuestsTo()).
 */
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('login', fn () => view('admin.login'))->name('login');
-        Route::get('dashboard', fn () => view('admin.dashboard'))->name('dashboard');
-        Route::get('pesanan', [OrderController::class, 'index'])->name('orders');
-        Route::get('produk', fn () => view('admin.products'))->name('products');
-        Route::get('laporan', fn () => view('admin.reports'))->name('reports');
+        Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+        Route::post('login', [AuthController::class, 'login'])
+            ->middleware('throttle:login')
+            ->name('login.attempt');
+
+        Route::middleware('auth')->group(function () {
+            Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+            Route::get('dashboard', fn () => view('admin.dashboard'))->name('dashboard');
+            Route::get('pesanan', [OrderController::class, 'index'])->name('orders');
+            Route::get('produk', fn () => view('admin.products'))->name('products');
+            Route::get('laporan', fn () => view('admin.reports'))->name('reports');
+        });
     });
 
 Route::prefix('{current_team}')

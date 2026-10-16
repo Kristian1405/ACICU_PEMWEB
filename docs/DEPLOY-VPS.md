@@ -129,6 +129,20 @@ Kalau perlu membersihkan cache manual:
 docker compose exec app php artisan config:clear
 ```
 
+### Membuat akun admin
+
+Panel admin (`/admin/*`) dilindungi login. Buat akunnya:
+
+```bash
+docker compose exec app php artisan acicu:admin admin@acicu.test --name="Admin ACICU"
+```
+
+Perintah akan meminta kata sandi secara interaktif (tidak tersimpan di
+riwayat shell). Untuk otomatis, tambahkan `--password="kata-sandi-kuat"`.
+
+- Login di `http://<APP_URL>/admin/login` — bisa memakai **email** atau **nama** admin.
+- Menjalankan perintah yang sama dengan email yang sudah ada akan **menyetel ulang** kata sandinya.
+
 ---
 
 ## 6. Verifikasi
@@ -138,6 +152,7 @@ docker compose exec app php artisan config:clear
 - [ ] `/acicu/pembayaran` → tombol **Bayar via QRIS** muncul.
 - [ ] Scan QRIS di https://simulator.sandbox.midtrans.com/ → sukses.
 - [ ] `/acicu/status` menampilkan **Dibayar**.
+- [ ] `/admin/dashboard` → diarahkan ke `/admin/login`; setelah login berhasil masuk dashboard.
 - [ ] `/admin/pesanan` menampilkan pesanan + status (bukan "Firebase belum dikonfigurasi").
 
 ---
@@ -162,6 +177,8 @@ docker compose up -d            # me-restart container dengan env baru
 | Gejala | Penyebab & solusi |
 |---|---|
 | `env file .env not found` | Belum `cp .env.example .env`. |
+| Tidak bisa login admin | Akun belum dibuat. Jalankan `docker compose exec app php artisan acicu:admin email@kamu --name="Admin"`. |
+| Lupa kata sandi admin | Jalankan ulang `acicu:admin` dengan email yang sama untuk menyetel ulang. |
 | `/admin/pesanan` bilang "Firebase belum dikonfigurasi" | `FIREBASE_*` / Service Account kurang. Cek `docker compose exec app php artisan tinker` → `app(App\Services\FirestoreService::class)->isConfigured()`. |
 | Error 403/PERMISSION_DENIED Firestore | Service Account salah/tidak terbaca. Cek `storage/app/firebase/service-account.json` + `chmod 644`. |
 | Tombol QRIS tidak muncul | `MIDTRANS_CLIENT_KEY` kosong → halaman jatuh ke mode simulasi. |

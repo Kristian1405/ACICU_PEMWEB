@@ -5,7 +5,7 @@
 @section('content')
   <div class="admin-page-head">
     <div>
-      <h1>Halo, Owner ACICU!</h1>
+      <h1>Halo, {{ auth()->user()?->name ?? 'Admin ACICU' }}!</h1>
       <p class="admin-page-sub">
         <i class="fa-regular fa-calendar"></i>
         {{ now()->locale('id')->translatedFormat('l, j F Y') }}

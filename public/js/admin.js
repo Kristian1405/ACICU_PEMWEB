@@ -64,16 +64,6 @@
     });
   }
 
-  function initLogout() {
-    var btn = document.getElementById("adminLogout");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      showToast(
-        "Belum ada sesi admin. Logout aktif setelah autentikasi admin terintegrasi.",
-      );
-    });
-  }
-
   function initGlobalSearch() {
     document.querySelectorAll("[data-admin-global-search]").forEach(function (input) {
       input.addEventListener("keydown", function (e) {
@@ -105,36 +95,26 @@
     });
   }
 
-  /* ---------- Login form ---------- */
+  /* ---------- Login form (validasi ringan; submit asli ke server) ---------- */
   function initLoginForm() {
     var form = document.getElementById("adminLoginForm");
     if (!form) return;
     var notice = document.getElementById("authNotice");
 
     form.addEventListener("submit", function (e) {
-      e.preventDefault();
       var user = document.getElementById("loginUser");
       var pass = document.getElementById("loginPassword");
 
-      if (!user.value.trim() || !pass.value.trim()) {
+      // Cegah submit hanya bila kolom kosong; jika tidak, biarkan
+      // formulir dikirim ke backend (POST /admin/login).
+      if (!user || !user.value.trim() || !pass || !pass.value.trim()) {
+        e.preventDefault();
         if (notice) {
           notice.textContent =
-            "Username/email dan kata sandi wajib diisi terlebih dahulu.";
+            "Email/username dan kata sandi wajib diisi terlebih dahulu.";
           notice.classList.add("show");
         }
-        return;
       }
-
-      // Integrasi autentikasi belum tersedia -> jangan mengaku berhasil.
-      if (notice) {
-        notice.innerHTML =
-          "<strong>Autentikasi admin belum diintegrasikan.</strong><br />" +
-          "Form ini belum terhubung ke backend, sehingga login belum dapat " +
-          "diproses. Integrasi ke sistem autentikasi Laravel (Fortify) akan " +
-          "dikerjakan pada tahap berikutnya.";
-        notice.classList.add("show");
-      }
-      showToast("Login belum tersedia — backend autentikasi belum diintegrasikan.");
     });
   }
 
@@ -315,7 +295,6 @@
   document.addEventListener("DOMContentLoaded", function () {
     initSidebar();
     initDisabledActions();
-    initLogout();
     initGlobalSearch();
     initPasswordToggle();
     initLoginForm();

@@ -62,13 +62,20 @@
           <div class="admin-profile">
             <span class="admin-avatar"><i class="fa-regular fa-user"></i></span>
             <div>
-              <strong>Owner ACICU</strong>
-              <span>Pengelola</span>
+              <strong>{{ auth()->user()?->name ?? 'Admin ACICU' }}</strong>
+              <span>{{ auth()->user()?->email ?? 'Pengelola' }}</span>
             </div>
           </div>
-          <button type="button" class="admin-logout" id="adminLogout">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
-          </button>
+          <form
+            method="POST"
+            action="{{ route('admin.logout') }}"
+            class="admin-logout-form"
+          >
+            @csrf
+            <button type="submit" class="admin-logout" id="adminLogout">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+            </button>
+          </form>
         </div>
       </aside>
 

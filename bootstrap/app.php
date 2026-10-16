@@ -18,6 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Tamu yang membuka halaman /admin diarahkan ke login admin,
+        // bukan ke halaman login Inertia bawaan.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('admin', 'admin/*')
+            ? route('admin.login')
+            : route('login'));
+
         // Webhook Midtrans tidak mengirim CSRF token (dipanggil oleh server Midtrans).
         $middleware->validateCsrfTokens(except: [
             'midtrans/notification',
