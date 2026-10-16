@@ -3,6 +3,15 @@
 @section('title', 'Laporan Penjualan')
 
 @section('content')
+  @php
+    $statusMap = [
+        'berhasil' => ['green', 'Dibayar'],
+        'menunggu' => ['yellow', 'Menunggu Bayar'],
+        'gagal' => ['grey', 'Gagal'],
+        'refund' => ['blue', 'Refund'],
+    ];
+  @endphp
+
   <div class="admin-page-head">
     <div>
       <span class="admin-eyebrow">
@@ -11,32 +20,41 @@
       </span>
       <h1>Laporan Penjualan &amp; Rekapitulasi Pre-Order</h1>
       <p class="admin-page-sub">
-        Unduh rekapan transaksi pre-order untuk pembukuan harian dan mingguan ACICU.
+        Rekap transaksi pre-order dari Cloud Firestore. Hanya pesanan berstatus
+        <strong>Dibayar</strong> yang dihitung sebagai pendapatan.
       </p>
     </div>
   </div>
 
+  @if ($error)
+    <div class="admin-toolbar">
+      <p class="admin-page-sub" style="color: #c0392b;">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ $error }}
+      </p>
+    </div>
+  @endif
+
   {{-- ===== FILTER ===== --}}
-  <div class="admin-toolbar">
+  <form method="GET" action="{{ route('admin.reports') }}" class="admin-toolbar">
     <label class="admin-field select-field">
       <i class="fa-regular fa-calendar"></i>
       <span style="font-size: 0.85rem; color: #6b6b7b;">Dari Tanggal:</span>
-      <input type="date" id="reportFrom" aria-label="Dari tanggal" />
+      <input type="date" name="from" id="reportFrom" value="{{ $from }}" aria-label="Dari tanggal" />
     </label>
 
     <label class="admin-field select-field">
       <i class="fa-regular fa-calendar"></i>
       <span style="font-size: 0.85rem; color: #6b6b7b;">Sampai Tanggal:</span>
-      <input type="date" id="reportTo" aria-label="Sampai tanggal" />
+      <input type="date" name="to" id="reportTo" value="{{ $to }}" aria-label="Sampai tanggal" />
     </label>
 
-    <button type="button" class="admin-btn pink" id="reportApply">
+    <button type="submit" class="admin-btn pink" id="reportApply">
       <i class="fa-solid fa-filter"></i> Terapkan Filter
     </button>
 
-    <button type="button" class="admin-icon-btn" id="reportReset" title="Reset filter">
+    <a href="{{ route('admin.reports') }}" class="admin-icon-btn" title="Reset filter">
       <i class="fa-solid fa-rotate-left"></i>
-    </button>
+    </a>
 
     <button
       type="button"
@@ -48,16 +66,16 @@
       <i class="fa-solid fa-file-excel"></i> Export Excel (.xlsx)
       <i class="fa-solid fa-download"></i>
     </button>
-  </div>
+  </form>
 
   {{-- ===== KARTU REKAP ===== --}}
   <div class="admin-stats">
     <div class="admin-stat">
       <div class="admin-stat-top">
-        <span>Total Pesanan Terkonfirmasi</span>
+        <span>Pesanan Terkonfirmasi</span>
         <span class="admin-stat-icon pink"><i class="fa-regular fa-clipboard"></i></span>
       </div>
-      <div class="admin-stat-value">&mdash; <small>Pesanan</small></div>
+      <div class="admin-stat-value">{{ $stats['confirmed'] }} <small>Pesanan</small></div>
     </div>
 
     <div class="admin-stat">
@@ -65,7 +83,7 @@
         <span>Total Porsi Terjual</span>
         <span class="admin-stat-icon pink"><i class="fa-solid fa-bowl-food"></i></span>
       </div>
-      <div class="admin-stat-value">&mdash; <small>Porsi</small></div>
+      <div class="admin-stat-value">{{ $stats['porsi'] }} <small>Porsi</small></div>
     </div>
 
     <div class="admin-stat">
@@ -73,7 +91,9 @@
         <span>Total Pendapatan Bersih</span>
         <span class="admin-stat-icon green"><i class="fa-solid fa-money-bill-wave"></i></span>
       </div>
-      <div class="admin-stat-value">&mdash;</div>
+      <div class="admin-stat-value" style="font-size: 1.5rem;">
+        Rp{{ number_format($stats['revenue'], 0, ',', '.') }}
+      </div>
     </div>
   </div>
 
@@ -81,17 +101,15 @@
   <div class="admin-card">
     <div class="admin-card-head">
       <div>
-        <h2>Data Transaksi Terkini Siap Ekspor</h2>
-        <p>Hanya pesanan terkonfirmasi yang dihitung sebagai pendapatan.</p>
+        <h2>Data Transaksi</h2>
+        <p>
+          @if ($from || $to)
+            Periode: {{ $from ?: 'awal' }} &ndash; {{ $to ?: 'sekarang' }}
+          @else
+            Seluruh transaksi (maks. 500 terbaru)
+          @endif
+        </p>
       </div>
-      <label class="admin-field select-field" style="flex: 0 0 auto;">
-        <span style="font-size: 0.82rem; color: #6b6b7b; white-space: nowrap;">Baris per halaman:</span>
-        <select aria-label="Baris per halaman" style="width: auto;">
-          <option>25</option>
-          <option>50</option>
-          <option>100</option>
-        </select>
-      </label>
     </div>
 
     <div class="admin-table-wrap">
@@ -108,25 +126,46 @@
           </tr>
         </thead>
         <tbody>
-          <tr data-empty>
-            <td colspan="7" class="adm-empty-cell">
-              <div class="admin-empty">
-                <i class="fa-solid fa-chart-column"></i>
-                <strong>Belum ada transaksi</strong>
-                <span data-empty-text data-default="Belum ada transaksi terkonfirmasi pada server. Pesanan user masih berupa simulasi di browser sehingga belum dapat direkap sebagai pendapatan.">
-                  Belum ada transaksi terkonfirmasi pada server. Pesanan user
-                  masih berupa simulasi di browser sehingga belum dapat direkap
-                  sebagai pendapatan.
-                </span>
-              </div>
-            </td>
-          </tr>
+          @forelse ($orders as $order)
+            @php
+              $orderId = $order['orderId'] ?? ($order['_id'] ?? '—');
+              $status = $order['paymentStatus'] ?? 'menunggu';
+              [$badgeClass, $badgeLabel] = $statusMap[$status] ?? ['grey', ucfirst((string) $status)];
+              $createdAt = (string) ($order['createdAt'] ?? '');
+              try {
+                  $dt = $createdAt !== '' ? \Illuminate\Support\Carbon::parse($createdAt) : null;
+              } catch (\Throwable) {
+                  $dt = null;
+              }
+            @endphp
+            <tr data-row>
+              <td><strong>{{ $orderId }}</strong></td>
+              <td>{{ $dt ? $dt->locale('id')->translatedFormat('d M Y H:i') : '—' }}</td>
+              <td>{{ $order['recipient']['nama'] ?? '—' }}</td>
+              <td>{{ \App\Services\OrderStats::itemsLabel($order) ?: '—' }}</td>
+              <td>{{ $order['paymentMethod'] ?? 'QRIS' }}</td>
+              <td>Rp{{ number_format((int) ($order['total'] ?? 0), 0, ',', '.') }}</td>
+              <td><span class="admin-badge {{ $badgeClass }}">{{ $badgeLabel }}</span></td>
+            </tr>
+          @empty
+            <tr data-empty>
+              <td colspan="7" class="adm-empty-cell">
+                <div class="admin-empty">
+                  <i class="fa-solid fa-chart-column"></i>
+                  <strong>Belum ada transaksi</strong>
+                  <span data-empty-text data-default="Belum ada transaksi pada rentang tanggal ini.">
+                    Belum ada transaksi pada rentang tanggal ini.
+                  </span>
+                </div>
+              </td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
 
     <div class="admin-pagination">
-      <span>Menampilkan data 0&ndash;0 dari 0 pesanan terkonfirmasi</span>
+      <span>Menampilkan {{ count($orders) }} dari {{ count($orders) }} pesanan</span>
       <div class="admin-pages">
         <button type="button" disabled><i class="fa-solid fa-chevron-left"></i></button>
         <button type="button" class="active" disabled>1</button>
@@ -137,9 +176,8 @@
 
   <p class="admin-page-sub">
     <i class="fa-solid fa-circle-info"></i>
-    Tombol <strong>Export Excel</strong> saat ini menghasilkan berkas
-    <strong>CSV</strong> asli (dapat dibuka di Excel) tanpa menambah dependensi.
-    Ekspor <strong>.xlsx</strong> sesungguhnya memerlukan paket tambahan dan
-    menunggu persetujuan Anda.
+    Tombol <strong>Export Excel</strong> menghasilkan berkas <strong>CSV</strong>
+    asli (dapat dibuka di Excel) sesuai baris yang tampil, tanpa menambah
+    dependensi.
   </p>
 @endsection

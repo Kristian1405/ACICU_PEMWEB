@@ -252,28 +252,87 @@
     });
   }
 
-  /* ---------- Filter tanggal laporan ---------- */
-  function initReportFilters() {
-    var applyBtn = document.getElementById("reportApply");
-    var resetBtn = document.getElementById("reportReset");
-    if (!applyBtn && !resetBtn) return;
+  /* ---------- Grafik tren 7 hari (dashboard) ---------- */
+  function initTrend() {
+    document.querySelectorAll("[data-trend]").forEach(function (wrap) {
+      var data;
+      try {
+        data = JSON.parse(wrap.getAttribute("data-trend"));
+      } catch (e) {
+        return;
+      }
+      if (!data || !data.length) return;
 
-    if (applyBtn) {
-      applyBtn.addEventListener("click", function () {
-        showToast(
-          "Filter tanggal belum menyaring data karena belum ada transaksi pada backend.",
-        );
-      });
-    }
-    if (resetBtn) {
-      resetBtn.addEventListener("click", function () {
-        var from = document.getElementById("reportFrom");
-        var to = document.getElementById("reportTo");
-        if (from) from.value = "";
-        if (to) to.value = "";
-        showToast("Filter tanggal direset.");
-      });
-    }
+      var group = document.querySelector("[data-trend-toggle]");
+      var mode = "porsi";
+
+      function render() {
+        var values = data.map(function (d) {
+          return mode === "nominal" ? d.nominal : d.porsi;
+        });
+        var max = Math.max.apply(null, values.concat([1]));
+
+        wrap.innerHTML = data
+          .map(function (d) {
+            var val = mode === "nominal" ? d.nominal : d.porsi;
+            var height = Math.round((val / max) * 170);
+            var label = String(d.label || "").slice(5);
+            var shown =
+              mode === "nominal"
+                ? "Rp" + val.toLocaleString("id-ID")
+                : val + " porsi";
+            return (
+              '<div class="admin-trend-col">' +
+              '<span class="admin-trend-value">' +
+              shown +
+              "</span>" +
+              '<div class="admin-trend-bar" style="height:' +
+              height +
+              'px"></div>' +
+              '<span class="admin-trend-label">' +
+              label +
+              "</span>" +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+
+      render();
+
+      if (group) {
+        group.querySelectorAll("button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            mode = btn.getAttribute("data-trend-mode") || "porsi";
+            render();
+          });
+        });
+      }
+    });
+  }
+
+  /* ---------- Sinkronisasi real-time (auto-refresh) ---------- */
+  function initRealtime() {
+    // Hanya pada halaman admin yang sudah login (punya sidebar),
+    // bukan pada halaman login.
+    if (!document.getElementById("adminSidebar")) return;
+
+    window.setInterval(function () {
+      if (document.visibilityState !== "visible") return;
+
+      // Jangan segarkan saat pengguna sedang mengisi kolom.
+      var active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "SELECT" ||
+          active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+
+      window.location.reload();
+    }, 30000);
   }
 
   /* ---------- Segmented toggle (dashboard) ---------- */
@@ -302,7 +361,8 @@
     initChoiceFilter();
     initRefresh();
     initCsvExport();
-    initReportFilters();
+    initTrend();
     initSegmented();
+    initRealtime();
   });
 })();

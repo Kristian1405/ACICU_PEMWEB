@@ -987,3 +987,153 @@
   .admin-login-title { font-size: 2rem; }
   .admin-field { min-width: 100%; }
 }
+
+/* =========================
+FORM PRODUK (tambah/edit)
+========================= */
+
+.admin-product-form { padding: 24px; }
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.admin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-field.full { grid-column: 1 / -1; }
+
+.admin-form-field > label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #45414f;
+}
+
+.admin-form-field > label small {
+  font-weight: 400;
+  color: var(--adm-muted);
+}
+
+.admin-form-field input[type="text"],
+.admin-form-field input[type="number"],
+.admin-form-field select,
+.admin-form-field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--adm-text);
+  background: var(--adm-white);
+  outline: none;
+}
+
+.admin-form-field input:focus,
+.admin-form-field select:focus,
+.admin-form-field textarea:focus {
+  border-color: var(--adm-pink);
+  box-shadow: 0 0 0 3px var(--adm-pink-soft);
+}
+
+.admin-form-field textarea { resize: vertical; }
+
+.admin-form-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-form-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--adm-pink);
+}
+
+.admin-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+@media (max-width: 720px) {
+  .admin-form-grid { grid-template-columns: 1fr; }
+  .admin-product-form { padding: 18px; }
+}
+
+/* =========================
+GRAFIK TREN & AKTIVITAS
+========================= */
+
+.admin-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 220px;
+  padding: 18px 4px 0;
+}
+
+.admin-trend-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-trend-bar {
+  width: 100%;
+  max-width: 48px;
+  min-height: 4px;
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(180deg, var(--adm-pink), var(--adm-pink-dark));
+  transition: height 0.4s ease;
+}
+
+.admin-trend-value {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+  text-align: center;
+}
+
+.admin-trend-label { font-size: 0.72rem; color: var(--adm-muted); }
+
+.admin-activity-list { display: flex; flex-direction: column; }
+
+.admin-activity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--adm-line);
+}
+
+.admin-activity:last-child { border-bottom: 0; }
+
+.admin-activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-activity-body strong { font-size: 0.9rem; }
+
+.admin-activity-body span {
+  font-size: 0.82rem;
+  color: var(--adm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-activity-total { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }

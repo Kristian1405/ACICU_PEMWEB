@@ -194,116 +194,60 @@ FILE: index.html
       </button>
 
       <!-- SLIDER -->
+      {{--
+        Slider dibangun dari katalog produk (tabel `products`) sehingga
+        homepage & panel admin selalu memakai data yang sama.
+      --}}
+      @php($menuProducts = $products ?? collect())
+      @php($menuCount = $menuProducts->count())
       <div class="slider-wrapper">
         <div class="slider">
-          <!-- ACTIVE -->
-          <div class="slide active">
-            <div class="side-circle left">
-              <img src="{{ asset('src-acicu/molachee.PNG') }}" alt="Molachee" />
+          @foreach ($menuProducts as $i => $product)
+            <div class="slide {{ $i === 0 ? 'active' : '' }}">
+              @if ($menuCount > 1)
+                <div class="side-circle left">
+                  <img
+                    src="{{ $menuProducts[($i + 1) % $menuCount]->imageUrl() }}"
+                    alt="{{ $menuProducts[($i + 1) % $menuCount]->title }}"
+                  />
+                </div>
+              @endif
+
+              <div class="main-circle">
+                <img src="{{ $product->imageUrl() }}" alt="{{ $product->title }}" />
+              </div>
+
+              <div class="menu-info">
+                <h1>{{ $product->title }}</h1>
+
+                <p>{{ $product->description }}</p>
+
+                <button
+                  class="add-to-cart"
+                  data-id="{{ $product->slug }}"
+                  data-name="{{ $product->name }}"
+                  data-price="{{ $product->price }}"
+                  data-image="{{ $product->imageUrl() }}"
+                >
+                  <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
+                </button>
+              </div>
+
+              @if ($menuCount > 1)
+                <div class="side-circle right">
+                  <img
+                    src="{{ $menuProducts[($i + 2) % $menuCount]->imageUrl() }}"
+                    alt="{{ $menuProducts[($i + 2) % $menuCount]->title }}"
+                  />
+                </div>
+              @endif
             </div>
-
-            <div class="main-circle">
-              <img src="{{ asset('src-acicu/ciweng.PNG') }}" alt="Ciweng" />
-            </div>
-
-            <div class="menu-info">
-              <h1>CIWENG</h1>
-
-              <p>
-                Camilan berbahan dasar aci yang gurih dan renyah. Memiliki rasa
-                khas yang cocok dinikmati sebagai teman bersantai ataupun
-                camilan sehari-hari
-              </p>
-
-              <button
-                class="add-to-cart"
-                data-id="ciweng"
-                data-name="Ciweng Original Gurih"
-                data-price="10000"
-                data-image="{{ asset('src-acicu/ciweng.PNG') }}"
-              >
-                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
-              </button>
-            </div>
-
-            <div class="side-circle right">
-              <img src="{{ asset('src-acicu/cilukba.PNG') }}" alt="Cilukba" />
-            </div>
-          </div>
-
-          <!-- LEFT -->
-          <div class="slide left-slide">
-            <div class="side-circle left">
-              <img src="{{ asset('src-acicu/cilukba.PNG') }}" alt="Cilukba" />
-            </div>
-
-            <div class="main-circle">
-              <img src="{{ asset('src-acicu/molachee.PNG') }}" alt="Molachee" />
-            </div>
-
-            <div class="menu-info">
-              <h1>MOLACHEE</h1>
-
-              <p>
-                Makanan ringan dengan cita rasa khas dan tekstur kenyal yang
-                lezat. Disajikan fresh setiap hari dengan perpaduan rasa yang
-                nikmat.
-              </p>
-
-              <button
-                class="add-to-cart"
-                data-id="molachee"
-                data-name="Molachee Crispy Keju"
-                data-price="10000"
-                data-image="{{ asset('src-acicu/molachee.PNG') }}"
-              >
-                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
-              </button>
-            </div>
-
-            <div class="side-circle right">
-              <img src="{{ asset('src-acicu/ciweng.PNG') }}" alt="Ciweng" />
-            </div>
-          </div>
-
-          <!-- RIGHT -->
-          <div class="slide right-slide">
-            <div class="side-circle left">
-              <img src="{{ asset('src-acicu/ciweng.PNG') }}" alt="Ciweng" />
-            </div>
-
-            <div class="main-circle">
-              <img src="{{ asset('src-acicu/cilukba.PNG') }}" alt="Cilukba" />
-            </div>
-
-            <div class="menu-info">
-              <h1>CILUKBA</h1>
-
-              <p>
-                Camilan gurih dengan tekstur renyah di luar dan lembut di dalam.
-                Cocok dinikmati saat santai bersama teman maupun keluarga.
-              </p>
-
-              <button
-                class="add-to-cart"
-                data-id="cilukba"
-                data-name="Cilukba Pedas Manis"
-                data-price="10000"
-                data-image="{{ asset('src-acicu/cilukba.PNG') }}"
-              >
-                <i class="fa-solid fa-plus"></i> Tambah ke Keranjang
-              </button>
-            </div>
-
-            <div class="side-circle right">
-              <img src="{{ asset('src-acicu/molachee.PNG') }}" alt="Molachee" />
-            </div>
-          </div>
+          @endforeach
         </div>
       </div>
 
       <!-- PRICE -->
-      <div class="price">Rp10.000</div>
+      <div class="price">Rp{{ number_format($menuProducts->min('price') ?? 0, 0, ',', '.') }}</div>
     </section>
     <!-- =========================
        ABOUT

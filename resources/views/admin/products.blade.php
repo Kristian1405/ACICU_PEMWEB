@@ -8,22 +8,26 @@
       <h1>
         Katalog &amp; Manajemen Menu Aci
         <span class="admin-badge pink" style="vertical-align: middle; margin-left: 8px;">
-          <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> 0 Produk Aktif
+          <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> {{ $products->count() }} Produk
         </span>
       </h1>
       <p class="admin-page-sub">
-        Atur varian aci kenyal gurih, kuota batch harian, serta harga promo
-        langsung ke katalog e-commerce.
+        Produk di sini adalah sumber data yang sama dengan katalog pada halaman
+        pembeli. Perubahan (tambah/edit/hapus) langsung tercermin di homepage.
       </p>
     </div>
-    <button
-      type="button"
-      class="admin-btn pink"
-      data-admin-disabled="Tambah produk belum tersedia — katalog produk belum terhubung ke backend."
-    >
+    <a href="{{ route('admin.products.create') }}" class="admin-btn pink">
       <i class="fa-solid fa-plus"></i> Tambah Produk
-    </button>
+    </a>
   </div>
+
+  @if (session('status'))
+    <div class="admin-toolbar">
+      <p class="admin-page-sub" style="color: var(--adm-green);">
+        <i class="fa-solid fa-circle-check"></i> {{ session('status') }}
+      </p>
+    </div>
+  @endif
 
   {{-- ===== TOOLBAR ===== --}}
   <div class="admin-toolbar">
@@ -60,24 +64,74 @@
           </tr>
         </thead>
         <tbody>
-          <tr data-empty>
-            <td colspan="8" class="adm-empty-cell">
-              <div class="admin-empty">
-                <i class="fa-solid fa-utensils"></i>
-                <strong>Belum ada produk pada katalog admin</strong>
-                <span data-empty-text data-default="Produk saat ini masih di-hardcode pada halaman user/pembeli dan belum tersimpan di database, sehingga katalog admin masih kosong.">
-                  Produk saat ini masih di-hardcode pada halaman user/pembeli dan
-                  belum tersimpan di database, sehingga katalog admin masih kosong.
+          @forelse ($products as $index => $product)
+            <tr data-row data-category="{{ $product->category }}">
+              <td>{{ $index + 1 }}</td>
+              <td>
+                @if ($product->imageUrl() !== '')
+                  <img
+                    src="{{ $product->imageUrl() }}"
+                    alt="{{ $product->name }}"
+                    style="width: 46px; height: 46px; object-fit: cover; border-radius: 10px;"
+                  />
+                @else
+                  &mdash;
+                @endif
+              </td>
+              <td>
+                <strong>{{ $product->name }}</strong>
+                <br />
+                <small style="color: var(--adm-muted);">{{ $product->title }}</small>
+              </td>
+              <td>{{ $product->category ?: '—' }}</td>
+              <td>Rp{{ number_format($product->price, 0, ',', '.') }}</td>
+              <td>{{ $product->stock > 0 ? $product->stock.' porsi' : 'Tanpa batas' }}</td>
+              <td>
+                <span class="admin-badge {{ $product->is_active ? 'green' : 'grey' }}">
+                  {{ $product->is_active ? 'Aktif' : 'Nonaktif' }}
                 </span>
-              </div>
-            </td>
-          </tr>
+              </td>
+              <td>
+                <a
+                  href="{{ route('admin.products.edit', $product) }}"
+                  class="admin-icon-btn"
+                  title="Edit produk"
+                >
+                  <i class="fa-regular fa-pen-to-square"></i>
+                </a>
+                <form
+                  method="POST"
+                  action="{{ route('admin.products.destroy', $product) }}"
+                  style="display: inline;"
+                  onsubmit="return confirm('Hapus produk {{ $product->name }}? Tindakan ini tidak dapat dibatalkan.');"
+                >
+                  @csrf
+                  @method('DELETE')
+                  <button type="submit" class="admin-icon-btn" title="Hapus produk">
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          @empty
+            <tr data-empty>
+              <td colspan="8" class="adm-empty-cell">
+                <div class="admin-empty">
+                  <i class="fa-solid fa-utensils"></i>
+                  <strong>Katalog masih kosong</strong>
+                  <span data-empty-text data-default="Belum ada produk. Klik “Tambah Produk” untuk menambahkan menu.">
+                    Belum ada produk. Klik “Tambah Produk” untuk menambahkan menu.
+                  </span>
+                </div>
+              </td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
 
     <div class="admin-pagination">
-      <span>Menampilkan 0&ndash;0 dari 0 produk</span>
+      <span>Menampilkan {{ $products->count() }} dari {{ $products->count() }} produk</span>
       <div class="admin-pages">
         <button type="button" disabled><i class="fa-solid fa-chevron-left"></i></button>
         <button type="button" class="active" disabled>1</button>
@@ -85,11 +139,4 @@
       </div>
     </div>
   </div>
-
-  <p class="admin-page-sub">
-    <i class="fa-solid fa-circle-info"></i>
-    Operasi <strong>Edit</strong> dan <strong>Hapus</strong> memerlukan tabel
-    produk pada database. Saat ini tabel tersebut belum tersedia, sehingga
-    aksi CRUD belum diaktifkan agar tidak merusak relasi data yang ada.
-  </p>
 @endsection
