@@ -197,8 +197,8 @@ class FirestoreService
                 'exp' => $now + 3600,
             ];
 
-            $signingInput = self::base64UrlEncode(json_encode($header))
-                .'.'.self::base64UrlEncode(json_encode($claims));
+            $signingInput = self::base64UrlEncode(json_encode($header, JSON_THROW_ON_ERROR))
+                .'.'.self::base64UrlEncode(json_encode($claims, JSON_THROW_ON_ERROR));
 
             $signature = '';
             $signed = openssl_sign($signingInput, $signature, $account['private_key'], 'sha256WithRSAEncryption');
@@ -300,8 +300,8 @@ class FirestoreService
         }
 
         if (is_array($value)) {
-            if ($value === [] || array_is_list($value)) {
-                return ['arrayValue' => ['values' => array_map(self::encodeValue(...), array_values($value))]];
+            if (array_is_list($value)) {
+                return ['arrayValue' => ['values' => array_map(self::encodeValue(...), $value)]];
             }
 
             return ['mapValue' => ['fields' => self::encodeFields($value)]];

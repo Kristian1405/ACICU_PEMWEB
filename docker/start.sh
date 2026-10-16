@@ -11,7 +11,9 @@ if [ ! -f database/database.sqlite ]; then
 fi
 
 rm -f bootstrap/cache/*.php
-php artisan key:generate --force
+if [ -z "${APP_KEY:-}" ] && ! grep -qE '^APP_KEY=base64:.+' .env; then
+    php artisan key:generate --force
+fi
 php artisan migrate --force
 php artisan storage:link || true
 

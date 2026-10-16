@@ -1,13 +1,17 @@
 # ACICU - Frontend Pre-Order & Payment Simulation
 
-Proyek frontend untuk sistem pre-order makanan ACICU dengan simulasi payment gateway.
+Proyek frontend untuk sistem pre-order makanan ACICU dengan pembayaran
+**QRIS otomatis via Midtrans Snap**, pesanan tersimpan di **Cloud Firestore**,
+dan panel admin yang membaca pesanan dari Firestore.
 
 ## Deskripsi
 
 Aplikasi web untuk pemesanan makanan dengan alur:
-- Menu → Keranjang → Formulir Pre-Order → Simulasi Pembayaran → Status Pesanan
+- Menu → Keranjang → Formulir Pre-Order → Pembayaran QRIS (Midtrans) → Status Pesanan
 
-**Catatan:** Payment gateway masih berupa simulasi frontend. Integrasi backend dan transaksi nyata akan dikerjakan kemudian.
+**Catatan:** Integrasi pembayaran memakai **Midtrans Snap (mode sandbox)** dan
+penyimpanan pesanan memakai **Firebase Cloud Firestore**. Bila kredensial belum
+diisi, halaman otomatis kembali ke mode simulasi.
 
 ## Tech Stack
 
@@ -90,7 +94,9 @@ references/              # Referensi desain UI
 - Menu produk dengan variasi
 - Keranjang belanja (localStorage persistence)
 - Formulir pre-order dengan validasi
-- Simulasi pembayaran (belum terhubung gateway nyata)
+- Pembayaran **QRIS otomatis via Midtrans Snap**
+- Pesanan tersimpan di **Cloud Firestore** (klien) + dibaca server (admin)
+- Verifikasi status otomatis (webhook Midtrans + fallback verify)
 - Tracking status pesanan
 - Timestamp WIB (Asia/Jakarta)
 - Jadwal persiapan & pengantaran
@@ -98,12 +104,15 @@ references/              # Referensi desain UI
 
 ## Dokumentasi
 
+- [docs/FIREBASE-MIDTRANS.md](docs/FIREBASE-MIDTRANS.md) - Konfigurasi Firebase + QRIS Midtrans & penjelasan kode
+- [docs/DEPLOY-VPS.md](docs/DEPLOY-VPS.md) - Runbook deploy ke VPS (Docker)
 - [Implementation.md](Implementation.md) - Spesifikasi implementasi lengkap
 - [references/](references/) - Referensi desain visual
 
 ## Status
 
-Frontend demonstrasi. Backend integration pending.
+Integrasi Firebase Firestore + Midtrans QRIS (sandbox) tersedia. Untuk produksi:
+aktifkan HTTPS/domain, App Check, dan batasi API key.
 
 ## License
 

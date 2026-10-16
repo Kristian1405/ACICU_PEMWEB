@@ -19,6 +19,10 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
       - app_database:/var/www/html/database
+      # Kredensial server Firebase (Service Account). Letakkan file JSON di
+      # folder host ./storage/app/firebase/ agar otomatis tersedia di container.
+      # File *.json di folder ini di-ignore Git dan Docker (.dockerignore).
+      - ./storage/app/firebase:/var/www/html/storage/app/firebase
     restart: unless-stopped
 
   workspace:
