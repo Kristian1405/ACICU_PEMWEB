@@ -12,13 +12,19 @@ services:
       APP_DEBUG: "false"
       APP_URL: ${APP_URL:-http://localhost:8000}
       DB_CONNECTION: sqlite
-      DB_DATABASE: /var/www/html/database/database.sqlite
+      # SQLite disimpan di subfolder "data" (lihat volume di bawah) agar folder
+      # database/migrations dari image TIDAK tertutup oleh volume.
+      DB_DATABASE: /var/www/html/database/data/database.sqlite
       SESSION_DRIVER: file
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
     volumes:
       - app_storage:/var/www/html/storage
-      - app_database:/var/www/html/database
+      # Volume HANYA menutupi subfolder data/, bukan seluruh database/.
+      # Dengan begitu migrasi terbaru dari image selalu terlihat oleh
+      # "php artisan migrate" (dijalankan docker/start.sh), sementara file
+      # database.sqlite tetap tersimpan antar deploy.
+      - app_database:/var/www/html/database/data
       # Kredensial server Firebase (Service Account). Letakkan file JSON di
       # folder host ./storage/app/firebase/ agar otomatis tersedia di container.
       # File *.json di folder ini di-ignore Git dan Docker (.dockerignore).

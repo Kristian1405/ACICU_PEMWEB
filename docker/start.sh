@@ -5,9 +5,9 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
-if [ ! -f database/database.sqlite ]; then
-    touch database/database.sqlite
+mkdir -p database/data storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+if [ ! -f database/data/database.sqlite ]; then
+    touch database/data/database.sqlite
 fi
 
 rm -f bootstrap/cache/*.php
