@@ -31,7 +31,14 @@ FILE: index.html
   ========================= -->
     <header class="navbar">
       <div class="nav-left">
-        <img src="{{ asset('src-acicu/logo.jpg') }}" alt="Logo" class="logo" />
+        {{-- Logo mengarah ke portal admin (akses pengelola) --}}
+        <a
+          href="{{ route('admin.login') }}"
+          title="Portal Admin ACICU"
+          style="display: flex; align-items: center;"
+        >
+          <img src="{{ asset('src-acicu/logo.jpg') }}" alt="Logo" class="logo" />
+        </a>
 
         <div class="logo-text">
           <h1>ACICU</h1>

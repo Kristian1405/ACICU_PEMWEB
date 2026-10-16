@@ -31,6 +31,25 @@ Route::get('/acicu/status', function () {
     return view('acicu-status');
 })->name('acicu.status');
 
+/*
+|--------------------------------------------------------------------------
+| Portal Admin ACICU (fase tampilan/UI)
+|--------------------------------------------------------------------------
+| Catatan: gate autentikasi admin belum tersedia. Halaman ini belum
+| dilindungi middleware dan hanya menampilkan empty state (tanpa data
+| server). Integrasi autentikasi Fortify akan dikerjakan pada tahap
+| berikutnya setelah disetujui.
+*/
+Route::prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('login', fn () => view('admin.login'))->name('login');
+        Route::get('dashboard', fn () => view('admin.dashboard'))->name('dashboard');
+        Route::get('pesanan', fn () => view('admin.orders'))->name('orders');
+        Route::get('produk', fn () => view('admin.products'))->name('products');
+        Route::get('laporan', fn () => view('admin.reports'))->name('reports');
+    });
+
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
