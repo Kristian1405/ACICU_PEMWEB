@@ -79,6 +79,12 @@ cp /path/unduhan/service-account.json storage/app/firebase/service-account.json
 chmod 644 storage/app/firebase/service-account.json
 ```
 
+3. Verifikasi (harus muncul `BERHASIL terhubung ke Firestore`):
+
+```bash
+docker compose exec app php artisan acicu:firebase-check
+```
+
 ---
 
 ## 3. Firestore Rules
@@ -179,7 +185,7 @@ docker compose up -d            # me-restart container dengan env baru
 | `env file .env not found` | Belum `cp .env.example .env`. |
 | Tidak bisa login admin | Akun belum dibuat. Jalankan `docker compose exec app php artisan acicu:admin email@kamu --name="Admin"`. |
 | Lupa kata sandi admin | Jalankan ulang `acicu:admin` dengan email yang sama untuk menyetel ulang. |
-| `/admin/pesanan` bilang "Firebase belum dikonfigurasi" | `FIREBASE_*` / Service Account kurang. Cek `docker compose exec app php artisan tinker` → `app(App\Services\FirestoreService::class)->isConfigured()`. |
+| Panel admin bilang "belum bisa membaca Firestore" | `FIREBASE_*` / Service Account kurang. Jalankan `docker compose exec app php artisan acicu:firebase-check` — pesannya menyebut penyebab persisnya (project ID kosong, file hilang, dll). |
 | Error 403/PERMISSION_DENIED Firestore | Service Account salah/tidak terbaca. Cek `storage/app/firebase/service-account.json` + `chmod 644`. |
 | Tombol QRIS tidak muncul | `MIDTRANS_CLIENT_KEY` kosong → halaman jatuh ke mode simulasi. |
 | `502 Gagal membuat transaksi` | `MIDTRANS_SERVER_KEY` salah. Lihat `docker compose logs app`. |

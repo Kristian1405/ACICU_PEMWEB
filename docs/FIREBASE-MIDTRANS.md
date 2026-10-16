@@ -269,10 +269,13 @@ Signature webhook diverifikasi di server (SHA-512 dari
 ```bash
 php artisan config:clear
 
-# Uji koneksi Firestore dari Service Account
+# Cara cepat: cek konfigurasi + koneksi sekaligus (disarankan)
+php artisan acicu:firebase-check
+
+# Manual (setara dengan yang dipakai panel admin)
 php artisan tinker
->>> app(App\Services\FirestoreService::class)->isConfigured();      // true
->>> app(App\Services\FirestoreService::class)->all('orders');       // array
+>>> app(App\Services\FirestoreService::class)->configurationIssue();  // null bila siap
+>>> app(App\Services\FirestoreService::class)->all('orders');         // array
 ```
 
 > Catatan: `createSnapToken()` dan webhook tidak dapat diuji tanpa kredensial

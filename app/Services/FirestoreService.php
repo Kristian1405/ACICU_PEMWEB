@@ -40,11 +40,31 @@ class FirestoreService
 
     public function isConfigured(): bool
     {
-        try {
-            return filled($this->projectId) && $this->serviceAccount() !== [];
-        } catch (RuntimeException) {
-            return false;
+        return $this->configurationIssue() === null;
+    }
+
+    /**
+     * Alasan konfigurasi Firestore belum siap (null bila sudah siap).
+     * Dipakai agar pesan pada panel admin spesifik, bukan sekadar
+     * "belum dikonfigurasi" tanpa petunjuk.
+     */
+    public function configurationIssue(): ?string
+    {
+        if (blank($this->projectId)) {
+            return 'FIREBASE_PROJECT_ID belum diisi pada file .env.';
         }
+
+        try {
+            $account = $this->serviceAccount();
+        } catch (RuntimeException $e) {
+            return $e->getMessage();
+        }
+
+        if (empty($account['project_id'])) {
+            return 'File Service Account tidak memuat "project_id".';
+        }
+
+        return null;
     }
 
     /**

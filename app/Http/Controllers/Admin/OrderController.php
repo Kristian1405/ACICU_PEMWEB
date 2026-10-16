@@ -26,15 +26,16 @@ class OrderController extends Controller
         $error = null;
 
         try {
-            if ($this->firestore->isConfigured()) {
+            if ($issue = $this->firestore->configurationIssue()) {
+                $error = 'Panel admin belum bisa membaca Firestore. '.$issue
+                    .' Unduh Service Account dari Firebase Console (Project settings → Service accounts → Generate new private key), simpan sebagai storage/app/firebase/service-account.json, lalu jalankan: php artisan acicu:firebase-check';
+            } else {
                 $orders = $this->firestore->all(
                     (string) config('firebase.orders_collection'),
                     limit: 100,
                     orderBy: 'createdAt',
                     direction: 'DESCENDING',
                 );
-            } else {
-                $error = 'Firebase belum dikonfigurasi. Isi FIREBASE_* pada file .env untuk menampilkan data pesanan.';
             }
         } catch (\Throwable $e) {
             $error = 'Gagal memuat data pesanan dari Firestore: '.$e->getMessage();
