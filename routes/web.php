@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\ContentController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,19 @@ Route::get('/acicu/status', function () {
 
 /*
 |--------------------------------------------------------------------------
+| Pembayaran QRIS (Midtrans Snap) + Webhook
+|--------------------------------------------------------------------------
+| snapToken : browser meminta Snap token untuk ditampilkan sebagai QRIS.
+| notification: webhook Midtrans (dikecualikan dari CSRF, lihat bootstrap/app.php).
+| check     : (opsional) cek status pesanan dari Firestore.
+*/
+Route::post('/acicu/pembayaran/snap', [PaymentController::class, 'snapToken'])->name('acicu.payment.snap');
+Route::post('/acicu/pembayaran/verify', [PaymentController::class, 'verify'])->name('acicu.payment.verify');
+Route::get('/acicu/status/{order}', [PaymentController::class, 'status'])->name('acicu.status.check');
+Route::post('/midtrans/notification', [PaymentController::class, 'notification'])->name('midtrans.notification');
+
+/*
+|--------------------------------------------------------------------------
 | Portal Admin ACICU (fase tampilan/UI)
 |--------------------------------------------------------------------------
 | Catatan: gate autentikasi admin belum tersedia. Halaman ini belum
@@ -43,7 +58,7 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('login', fn () => view('admin.login'))->name('login');
         Route::get('dashboard', fn () => view('admin.dashboard'))->name('dashboard');
-        Route::get('pesanan', fn () => view('admin.orders'))->name('orders');
+        Route::get('pesanan', [OrderController::class, 'index'])->name('orders');
         Route::get('produk', fn () => view('admin.products'))->name('products');
         Route::get('laporan', fn () => view('admin.reports'))->name('reports');
     });

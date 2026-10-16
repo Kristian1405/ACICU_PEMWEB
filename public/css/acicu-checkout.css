@@ -742,6 +742,17 @@
   margin-bottom: 12px;
 }
 
+.result-box.pending {
+  background: #fff3cd;
+  border: 1px solid #f0c36d;
+}
+
+.result-box.pending i {
+  font-size: 3rem;
+  color: #856404;
+  margin-bottom: 12px;
+}
+
 .result-box h3 {
   font-size: 1.2rem;
   font-weight: 700;

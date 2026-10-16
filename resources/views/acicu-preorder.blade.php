@@ -16,6 +16,7 @@
     />
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
     <link rel="stylesheet" href="{{ asset('css/acicu-checkout.css') }}" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
   </head>
   <body>
     <header class="navbar">
@@ -111,7 +112,12 @@
       </div>
     </main>
 
+    @include('partials.acicu-config')
     <script src="{{ asset('js/script.js') }}"></script>
+    {{-- Firebase SDK (compat) untuk menyimpan pesanan ke Cloud Firestore --}}
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="{{ asset('js/acicu-firebase.js') }}"></script>
     <script src="{{ asset('js/acicu-checkout.js') }}"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {

@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// ============================================================================
+// Firestore Security Rules - project ACICU
+// ----------------------------------------------------------------------------
+// Prinsip: klien (browser) hanya boleh MEMBUAT pesanan baru. Membaca,
+// mengubah, dan menghapus DILARANG dari klien. Server (Service Account /
+// Firestore REST) memakai jalur admin yang melewati rules ini untuk:
+//   - webhook Midtrans  -> update status pembayaran
+//   - panel admin       -> membaca daftar pesanan
+// ============================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /orders/{orderId} {
+      allow create: if isValidOrder(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
+    // Default: tolak semua akses lain.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidOrder(data) {
+      return data.orderId is string
+        && data.orderId.size() > 0
+        && data.orderId.size() <= 64
+        && data.total is int
+        && data.total > 0
+        && data.items is list
+        && data.items.size() > 0
+        && data.recipient is map
+        && data.recipient.nama is string
+        && data.recipient.nama.size() > 0;
+    }
+  }
+}

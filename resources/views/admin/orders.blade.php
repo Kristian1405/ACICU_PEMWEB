@@ -2,19 +2,37 @@
 
 @section('title', 'Data Pesanan')
 
+@php
+  $statusMap = [
+      'berhasil' => ['green', 'Dibayar'],
+      'menunggu' => ['yellow', 'Menunggu Bayar'],
+      'gagal' => ['grey', 'Gagal'],
+      'refund' => ['blue', 'Refund'],
+  ];
+  $total = count($orders);
+@endphp
+
 @section('content')
   <div class="admin-page-head">
     <div>
       <h1>Kelola Data Pesanan Pre-Order</h1>
       <p class="admin-page-sub">
-        Pantau verifikasi transfer pelanggan dan atur alur masuk dapur.
+        Data pesanan dibaca dari Cloud Firestore (project: {{ config('firebase.project_id') ?: '—' }}).
       </p>
     </div>
     <span class="admin-chip">
       <i class="fa-regular fa-clipboard"></i>
-      Total Antrean: &mdash; Pesanan
+      Total Antrean: {{ $total }} Pesanan
     </span>
   </div>
+
+  @if ($error)
+    <div class="admin-toolbar">
+      <p class="admin-page-sub" style="color:#c0392b;">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ $error }}
+      </p>
+    </div>
+  @endif
 
   {{-- ===== TOOLBAR ===== --}}
   <div class="admin-toolbar">
@@ -36,9 +54,9 @@
       <i class="fa-solid fa-filter"></i>
       <select aria-label="Filter status">
         <option>Semua Status</option>
-        <option>Menunggu Konfirmasi</option>
-        <option>Proses Dapur</option>
-        <option>Selesai</option>
+        <option>Menunggu Bayar</option>
+        <option>Dibayar</option>
+        <option>Gagal</option>
       </select>
     </label>
 
@@ -70,25 +88,75 @@
           </tr>
         </thead>
         <tbody>
-          <tr data-empty>
-            <td colspan="9" class="adm-empty-cell">
-              <div class="admin-empty">
-                <i class="fa-regular fa-clipboard"></i>
-                <strong>Belum ada pesanan</strong>
-                <span data-empty-text data-default="Belum ada data pesanan pada server. Data pesanan user saat ini masih tersimpan di browser (simulasi) dan belum terhubung ke backend admin.">
-                  Belum ada data pesanan pada server. Data pesanan user saat ini
-                  masih tersimpan di browser (simulasi) dan belum terhubung ke
-                  backend admin.
-                </span>
-              </div>
-            </td>
-          </tr>
+          @forelse ($orders as $index => $order)
+            @php
+              $recipient = $order['recipient'] ?? [];
+              $delivery = $order['delivery'] ?? [];
+              $items = $order['items'] ?? [];
+              $orderId = $order['orderId'] ?? ($order['_id'] ?? '—');
+              $status = $order['paymentStatus'] ?? 'menunggu';
+              [$badgeClass, $badgeLabel] = $statusMap[$status] ?? ['grey', ucfirst($status)];
+
+              $rincian = collect($items)
+                  ->map(function ($item) {
+                      $name = $item['name'] ?? '-';
+                      if (! empty($item['variant'])) {
+                          $name .= ' ('.$item['variant'].')';
+                      }
+                      return ($item['qty'] ?? 0).'× '.$name;
+                  })
+                  ->implode(', ');
+            @endphp
+            <tr data-row>
+              <td>{{ $index + 1 }}</td>
+              <td><strong>{{ $orderId }}</strong></td>
+              <td>{{ $recipient['nama'] ?? '—' }}</td>
+              <td>{{ $recipient['whatsapp'] ?? '—' }}</td>
+              <td>{{ $rincian !== '' ? $rincian : '—' }}</td>
+              <td>Rp{{ number_format((int) ($order['total'] ?? 0), 0, ',', '.') }}</td>
+              <td>
+                {{ $delivery['tanggal'] ?? '—' }}
+                @if (! empty($delivery['slot']))
+                  &middot; {{ $delivery['slot'] }} WIB
+                @endif
+              </td>
+              <td><span class="admin-badge {{ $badgeClass }}">{{ $badgeLabel }}</span></td>
+              <td>
+                <button
+                  type="button"
+                  class="admin-icon-btn"
+                  title="Detail pesanan"
+                  data-admin-disabled="Halaman detail pesanan belum dibuat. Data sudah tersedia di Firestore."
+                >
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </td>
+            </tr>
+          @empty
+            <tr data-empty>
+              <td colspan="9" class="adm-empty-cell">
+                <div class="admin-empty">
+                  <i class="fa-regular fa-clipboard"></i>
+                  <strong>Belum ada pesanan</strong>
+                  <span data-empty-text data-default="{{ $error ? 'Firebase belum dikonfigurasi sehingga data pesanan belum dapat dimuat.' : 'Belum ada pesanan yang tersimpan di Cloud Firestore.' }}">
+                    {{ $error ? 'Firebase belum dikonfigurasi sehingga data pesanan belum dapat dimuat.' : 'Belum ada pesanan yang tersimpan di Cloud Firestore.' }}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
 
     <div class="admin-pagination">
-      <span>Menampilkan 0&ndash;0 dari 0 pesanan</span>
+      <span>
+        @if ($total > 0)
+          Menampilkan 1&ndash;{{ $total }} dari {{ $total }} pesanan
+        @else
+          Menampilkan 0&ndash;0 dari 0 pesanan
+        @endif
+      </span>
       <div class="admin-pages">
         <button type="button" disabled><i class="fa-solid fa-chevron-left"></i></button>
         <button type="button" class="active" disabled>1</button>
@@ -99,8 +167,7 @@
 
   <p class="admin-page-sub">
     <i class="fa-solid fa-circle-info"></i>
-    Tombol <strong>Validasi Bukti</strong>, <strong>Detail</strong>, dan
-    <strong>Selesai</strong> akan muncul per baris setelah data pesanan dan
-    modul pembayaran tersedia di backend.
+    Status pembayaran diperbarui otomatis oleh webhook Midtrans
+    (<code>POST /midtrans/notification</code>).
   </p>
 @endsection

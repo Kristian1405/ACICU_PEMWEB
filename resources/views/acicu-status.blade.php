@@ -84,6 +84,7 @@
       </div>
     </main>
 
+    @include('partials.acicu-config')
     <script src="{{ asset('js/script.js') }}"></script>
     <script src="{{ asset('js/acicu-checkout.js') }}"></script>
     <script>

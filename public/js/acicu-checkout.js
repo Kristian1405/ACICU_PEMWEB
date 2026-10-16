@@ -412,6 +412,11 @@
 
         Order.save(order);
 
+        /* Sinkronkan pesanan ke Cloud Firestore (bila dikonfigurasi). */
+        if (window.AcicuFirestore && window.AcicuFirestore.enabled) {
+          window.AcicuFirestore.saveOrder(order);
+        }
+
         setTimeout(function () {
           Cart.clear();
           window.location.href = "/acicu/pembayaran";
@@ -459,7 +464,14 @@
     const actionsEl = document.getElementById("paymentActions");
     const resultEl = document.getElementById("paymentResult");
 
-    function finish(status) {
+    /* Apakah pembayaran QRIS Midtrans aktif (Client Key terisi)? */
+    const live = !!(
+      window.ACICU_CONFIG &&
+      window.ACICU_CONFIG.midtrans &&
+      window.ACICU_CONFIG.midtrans.clientKey
+    );
+
+    function finish(status, message) {
       order.paymentStatus = status;
       Order.save(order);
 
@@ -471,16 +483,28 @@
           resultEl.innerHTML =
             '<div class="result-box success">' +
             '<i class="fa-solid fa-circle-check"></i>' +
-            "<h3>Simulasi Pembayaran Berhasil</h3>" +
-            "<p>Ini hanya simulasi frontend. Status disimpan di browser, bukan server.</p>" +
+            "<h3>" + (live ? "Pembayaran Berhasil" : "Simulasi Pembayaran Berhasil") + "</h3>" +
+            "<p>" +
+            (live
+              ? "Status pembayaran akan diverifikasi otomatis oleh Midtrans."
+              : "Ini hanya simulasi frontend. Status disimpan di browser, bukan server.") +
+            "</p>" +
+            '<a href="/acicu/status" class="btn-submit" style="display:block;text-align:center;text-decoration:none;margin-top:12px;">Lihat Status Pesanan</a>' +
+            "</div>";
+        } else if (status === "menunggu") {
+          resultEl.innerHTML =
+            '<div class="result-box pending">' +
+            '<i class="fa-solid fa-clock"></i>' +
+            "<h3>Menunggu Pembayaran</h3>" +
+            "<p>Selesaikan pembayaran QRIS. Status diperbarui otomatis setelah pembayaran diterima Midtrans.</p>" +
             '<a href="/acicu/status" class="btn-submit" style="display:block;text-align:center;text-decoration:none;margin-top:12px;">Lihat Status Pesanan</a>' +
             "</div>";
         } else {
           resultEl.innerHTML =
             '<div class="result-box failed">' +
             '<i class="fa-solid fa-circle-xmark"></i>' +
-            "<h3>Simulasi Pembayaran Gagal / Dibatalkan</h3>" +
-            "<p>Pesanan tidak diproses. Kamu bisa mencoba lagi dari formulir.</p>" +
+            "<h3>" + (live ? "Pembayaran Gagal / Dibatalkan" : "Simulasi Pembayaran Gagal / Dibatalkan") + "</h3>" +
+            "<p>" + (message ? String(message) : "Pesanan tidak diproses. Kamu bisa mencoba lagi dari formulir.") + "</p>" +
             '<a href="/acicu/pre-order" class="btn-back" style="display:block;text-align:center;text-decoration:none;margin-top:12px;">Coba Lagi</a>' +
             "</div>";
         }
@@ -491,6 +515,11 @@
     const btnFail = document.getElementById("btnPayFail");
     if (btnSuccess) btnSuccess.addEventListener("click", () => finish("berhasil"));
     if (btnFail) btnFail.addEventListener("click", () => finish("gagal"));
+
+    /* Pembayaran QRIS otomatis via Midtrans Snap (bila dikonfigurasi). */
+    if (window.AcicuMidtrans) {
+      window.AcicuMidtrans.init(order, finish);
+    }
   }
 
   /* ---------- Status page ---------- */
@@ -527,7 +556,11 @@
         (order.recipient.catatan ? "<p class='note'>Catatan: " + order.recipient.catatan + "</p>" : "");
     }
 
-    /* Badge status pembayaran (simulasi) */
+    /* Badge status pembayaran */
+    const live =
+      window.ACICU_CONFIG &&
+      window.ACICU_CONFIG.midtrans &&
+      window.ACICU_CONFIG.midtrans.clientKey;
     const badgeEl = document.getElementById("statusBadgeContainer");
     if (badgeEl) {
       let cls = "pending",
@@ -536,11 +569,11 @@
       if (order.paymentStatus === "berhasil") {
         cls = "success";
         icon = "fa-circle-check";
-        text = "Pembayaran Berhasil (Simulasi)";
+        text = "Pembayaran Berhasil" + (live ? "" : " (Simulasi)");
       } else if (order.paymentStatus === "gagal") {
         cls = "failed";
         icon = "fa-circle-xmark";
-        text = "Pembayaran Gagal (Simulasi)";
+        text = "Pembayaran Gagal" + (live ? "" : " (Simulasi)");
       }
       badgeEl.innerHTML =
         '<div class="status-badge ' + cls + '">' +
@@ -573,6 +606,22 @@
         Cart.clear();
         window.location.href = "/acicu";
       });
+    }
+
+    /* Sinkronkan status terbaru dari server (Firestore) bila tersedia. */
+    const cfg = window.ACICU_CONFIG || {};
+    if (cfg.endpoints && cfg.endpoints.status && order.id) {
+      const url = cfg.endpoints.status.replace("__ORDER_ID__", encodeURIComponent(order.id));
+      fetch(url, { headers: { Accept: "application/json" } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && data.paymentStatus && data.paymentStatus !== order.paymentStatus) {
+            order.paymentStatus = data.paymentStatus;
+            Order.save(order);
+            window.location.reload();
+          }
+        })
+        .catch(() => {});
     }
   }
 
