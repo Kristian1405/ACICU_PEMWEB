@@ -45,7 +45,7 @@ MIDTRANS_MERCHANT_ID=
 MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxxxxxx
 MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx      # RAHASIA
 MIDTRANS_IS_PRODUCTION=false                          # false = sandbox
-MIDTRANS_ENABLED_PAYMENTS=qris                        # fokus QRIS
+MIDTRANS_ENABLED_PAYMENTS=other_qris                  # kanal QRIS generik Midtrans
 MIDTRANS_FINISH_URL="${APP_URL}/acicu/status"
 MIDTRANS_UNFINISH_URL="${APP_URL}/acicu/pembayaran"
 

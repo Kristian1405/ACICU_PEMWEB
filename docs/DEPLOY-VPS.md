@@ -42,7 +42,7 @@ APP_URL=http://70.153.142.126:8000
 MIDTRANS_CLIENT_KEY=Mid-client-IByVHjrZL9eCFq56
 MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx      # rotasi dulu, lihat catatan
 MIDTRANS_IS_PRODUCTION=false
-MIDTRANS_ENABLED_PAYMENTS=qris
+MIDTRANS_ENABLED_PAYMENTS=other_qris
 
 # Firebase
 FIREBASE_PROJECT_ID=acicu-pemweb

@@ -25,13 +25,19 @@ return [
     'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
 
     /*
-    | Metode pembayaran yang diaktifkan pada Snap. Default hanya "qris"
+    | Metode pembayaran yang ditampilkan pada Snap. Default hanya QRIS
     | agar fokus pada QRIS otomatis. Bisa diisi beberapa, pisahkan koma.
-    | Contoh: "qris,gopay,shopeepay,bank_transfer"
+    | Contoh: "other_qris,gopay,shopeepay"
     */
     'enabled_payments' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env('MIDTRANS_ENABLED_PAYMENTS', 'qris'))
+        static function (string $value): string {
+            $value = trim($value);
+
+            // Midtrans menamai kanal QRIS generik sebagai "other_qris",
+            // bukan "qris". "qris" tetap diterima agar .env lama tidak rusak.
+            return strtolower($value) === 'qris' ? 'other_qris' : $value;
+        },
+        explode(',', (string) env('MIDTRANS_ENABLED_PAYMENTS', 'other_qris'))
     ))),
 
     'finish_url' => env('MIDTRANS_FINISH_URL'),
