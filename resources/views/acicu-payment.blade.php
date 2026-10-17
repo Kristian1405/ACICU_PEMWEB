@@ -1,9 +1,10 @@
+@php($midtransReady = filled(config('midtrans.client_key')))
 <!doctype html>
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simulasi Pembayaran - ACICU</title>
+    <title>{{ $midtransReady ? 'Pembayaran QRIS' : 'Simulasi Pembayaran' }} - ACICU</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -39,7 +40,6 @@
     </header>
 
     <main class="checkout-page">
-      @php($midtransReady = filled(config('midtrans.client_key')))
       <div class="checkout-container payment-container">
         <div class="sim-banner">
           @if ($midtransReady)
@@ -56,7 +56,7 @@
         <div class="payment-grid">
           <section class="payment-info-section">
             <div class="order-ref-card">
-              <span class="order-ref-label">ID Pesanan (Simulasi)</span>
+              <span class="order-ref-label">{{ $midtransReady ? 'ID Pesanan' : 'ID Pesanan (Simulasi)' }}</span>
               <span class="order-ref-id" id="payOrderId">-</span>
             </div>
 
