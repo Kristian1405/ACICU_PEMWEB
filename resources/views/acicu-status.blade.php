@@ -20,7 +20,7 @@
   <body>
     <header class="navbar">
       <div class="nav-left">
-        <a href="/acicu" style="display:flex;align-items:center;gap:20px;text-decoration:none;">
+        <a href="/" style="display:flex;align-items:center;gap:20px;text-decoration:none;">
           <img src="{{ asset('src-acicu/logo.jpg') }}" alt="Logo" class="logo" />
           <div class="logo-text">
             <h1>ACICU</h1>
@@ -29,8 +29,8 @@
         </a>
       </div>
       <nav class="nav-menu" id="navMenu">
-        <a href="/acicu" class="nav-link">Home</a>
-        <a href="/acicu#menu" class="nav-link">Menu</a>
+        <a href="/" class="nav-link">Home</a>
+        <a href="/#menu" class="nav-link">Menu</a>
       </nav>
       <div class="hamburger" id="hamburger">
         <span></span><span></span><span></span>
