@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Aplikasi di belakang Caddy (reverse proxy): tanpa ini Laravel melihat
+        // request sebagai http dan semua asset()/url() jadi http:// (mixed content).
+        $middleware->trustProxies(at: '*');
+
         // Tamu yang membuka halaman /admin diarahkan ke login admin,
         // bukan ke halaman login Inertia bawaan.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('admin', 'admin/*')
