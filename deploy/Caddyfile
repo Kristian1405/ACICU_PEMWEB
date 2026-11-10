@@ -1,0 +1,19 @@
+# Reverse proxy ACICU: Caddy berjalan di host, aplikasi Laravel ada di
+# container Docker yang dipublikasikan ke 127.0.0.1:8000.
+#
+# Pasang:
+#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# HTTPS dan sertifikat Let's Encrypt diurus otomatis oleh Caddy.
+# Syarat: A record domain sudah mengarah ke IP publik VPS dan port 80/443
+# terbuka. Ganti "acicu.me" bila memakai domain lain.
+
+acicu.me {
+	reverse_proxy 127.0.0.1:8000
+}
+
+# Aktifkan bila CNAME www sudah ada dan ingin www ikut dilayani:
+# acicu.me, www.acicu.me {
+# 	reverse_proxy 127.0.0.1:8000
+# }

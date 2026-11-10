@@ -9,9 +9,10 @@ dan panel admin yang membaca pesanan dari Firestore.
 Aplikasi web untuk pemesanan makanan dengan alur:
 - Menu → Keranjang → Formulir Pre-Order → Pembayaran QRIS (Midtrans) → Status Pesanan
 
-**Catatan:** Integrasi pembayaran memakai **Midtrans Snap (mode sandbox)** dan
-penyimpanan pesanan memakai **Firebase Cloud Firestore**. Bila kredensial belum
-diisi, halaman otomatis kembali ke mode simulasi.
+**Catatan:** Integrasi pembayaran memakai **Midtrans Snap** (sandbox atau
+produksi sesuai `MIDTRANS_IS_PRODUCTION`) dan penyimpanan pesanan memakai
+**Firebase Cloud Firestore**. Bila kredensial belum diisi, halaman otomatis
+kembali ke mode simulasi.
 
 ## Tech Stack
 
@@ -109,13 +110,15 @@ references/              # Referensi desain UI
 ## Dokumentasi
 
 - [docs/FIREBASE-MIDTRANS.md](docs/FIREBASE-MIDTRANS.md) - Konfigurasi Firebase + QRIS Midtrans & penjelasan kode
+- [docs/PAYMENT-PRODUCTION.md](docs/PAYMENT-PRODUCTION.md) - Migrasi Midtrans sandbox → produksi, checklist go-live & rollback
 - [docs/DEPLOY-VPS.md](docs/DEPLOY-VPS.md) - Runbook deploy ke VPS (Docker)
 - [Implementation.md](Implementation.md) - Spesifikasi implementasi lengkap
 - [references/](references/) - Referensi desain visual
 
 ## Status
 
-Integrasi Firebase Firestore + Midtrans QRIS (sandbox) tersedia. Untuk produksi:
+Integrasi Firebase Firestore + Midtrans QRIS tersedia untuk sandbox maupun
+produksi. Untuk go-live: ikuti [docs/PAYMENT-PRODUCTION.md](docs/PAYMENT-PRODUCTION.md),
 aktifkan HTTPS/domain, App Check, dan batasi API key.
 
 ## License

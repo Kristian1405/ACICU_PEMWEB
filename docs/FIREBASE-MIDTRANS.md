@@ -44,7 +44,7 @@ Tambahkan blok berikut (sudah ditambahkan ke `.env` dan `.env.example`):
 MIDTRANS_MERCHANT_ID=
 MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxxxxxx
 MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx      # RAHASIA
-MIDTRANS_IS_PRODUCTION=false                          # false = sandbox
+MIDTRANS_IS_PRODUCTION=false                          # false = sandbox, true = produksi
 MIDTRANS_ENABLED_PAYMENTS=other_qris                  # kanal QRIS generik Midtrans
 MIDTRANS_FINISH_URL="${APP_URL}/acicu/status"
 MIDTRANS_UNFINISH_URL="${APP_URL}/acicu/pembayaran"
@@ -138,10 +138,15 @@ Koleksi **`orders`**, dokumen id = nomor PO (`PO-1234`):
 ## 4. Langkah konfigurasi Midtrans
 
 Dashboard Sandbox: <https://dashboard.sandbox.midtrans.com>
+Dashboard Produksi: <https://dashboard.midtrans.com>
+
+> Migrasi ke produksi (kredensial produksi, QRIS asli, webhook publik,
+> rollback) dijelaskan terpisah di [PAYMENT-PRODUCTION.md](PAYMENT-PRODUCTION.md).
 
 ### 4.1 Access Keys
 
-**Settings → Access Keys / Credentials** → salin:
+**Settings → Access Keys / Credentials** → salin (dari dashboard sesuai mode
+yang dipakai — key sandbox tidak berlaku di produksi):
 
 - **Client Key** → `MIDTRANS_CLIENT_KEY` (dipakai Snap.js di browser).
 - **Server Key** → `MIDTRANS_SERVER_KEY` (dipakai server, rahasia).
@@ -154,6 +159,9 @@ Dashboard Sandbox: <https://dashboard.sandbox.midtrans.com>
 https://<domain-anda>/midtrans/notification
 ```
 
+> URL ini diatur **terpisah** di dashboard sandbox dan dashboard produksi.
+> Saat pindah mode, daftarkan ulang URL-nya di dashboard produksi.
+
 > **Batasan penting (dari dokumentasi Midtrans):**
 > - **Dilarang memakai format IP address** (mis. `http://70.153.142.126/...`).
 > - **Dilarang memakai port tidak standar** (mis. `:8000`). Pakai port **80/443**.
@@ -165,7 +173,7 @@ Artinya URL VPS saat ini (`http://70.153.142.126:8000/midtrans/notification`)
 1. **Domain + HTTPS (produksi).** Arahkan domain ke VPS, pasang reverse proxy
    (Nginx/Caddy) dengan Let's Encrypt di port 443 → diteruskan ke container.
    Lalu set `https://domain-anda/midtrans/notification`.
-2. **Tunnel untuk uji sandbox.** Contoh:
+2. **Tunnel untuk uji lokal** (sandbox maupun produksi). Contoh:
    ```bash
    cloudflared tunnel --url http://localhost:8000
    # atau
@@ -187,6 +195,9 @@ Signature webhook diverifikasi di server (SHA-512 dari
 2. Snap menampilkan QR. Simulasikan pembayaran di **QRIS Simulator**:
    <https://simulator.sandbox.midtrans.com/>.
 3. Webhook akan menandai pesanan `paymentStatus: berhasil` di Firestore.
+
+> Simulator **hanya untuk sandbox** (`MIDTRANS_IS_PRODUCTION=false`). Saat
+> produksi, QR harus dipindai dengan aplikasi pembayaran sungguhan.
 
 ---
 
@@ -290,8 +301,9 @@ php artisan tinker
 - **Firestore Rules** melarang klien membaca/mengubah data pesanan.
 - Untuk produksi, aktifkan **Firebase App Check** dan batasi **API key**
   (HTTP referrer) di Google Cloud Console.
-- QRIS Midtrans di mode sandbox; ubah `MIDTRANS_IS_PRODUCTION=true` (dan pakai
-  kredensial produksi) saat rilis.
+- Untuk rilis, set `MIDTRANS_IS_PRODUCTION=true` **dan** pakai kredensial dari
+  dashboard produksi. Jangan campur key sandbox dengan mode produksi. Langkah
+  lengkap: [PAYMENT-PRODUCTION.md](PAYMENT-PRODUCTION.md).
 
 ---
 
@@ -341,11 +353,12 @@ docker compose exec app php artisan config:clear
 `docker-compose.yml` kini memakai `${APP_URL:-...}`, cukup set di `.env` VPS:
 
 ```dotenv
-APP_URL=http://70.153.142.126:8000
+APP_URL=https://domain-anda
 ```
 
-Lalu `docker compose up -d` agar diterapkan. Redirect browser bekerja dengan
-IP:port; hanya **webhook** yang memerlukan domain + port standar (lihat 4.2).
+Lalu `docker compose up -d` agar diterapkan. Saat produksi, `APP_URL` **wajib**
+domain HTTPS publik: nilai ini dipakai untuk redirect finish Snap sekaligus
+menentukan URL webhook (lihat 4.2).
 
 ### 11.2 Web Config & Service Account Firebase
 
@@ -363,15 +376,16 @@ IP:port; hanya **webhook** yang memerlukan domain + port standar (lihat 4.2).
 
 ### 11.3 Catatan `docker/start.sh`
 
-Skrip start menjalankan `php artisan key:generate --force` **setiap** container
-dinyalakan. Akibatnya `APP_KEY` berganti tiap restart (sesi login ikut
-ter-reset). Untuk produksi sebaiknya dihapus dan set `APP_KEY` tetap di `.env`.
-Ini tidak memengaruhi integrasi Firebase/Midtrans, tetapi perlu diketahui.
+Skrip start hanya menjalankan `key:generate --force` bila `APP_KEY` belum ada
+di `.env`. Tetap set `APP_KEY` tetap di `.env` produksi agar sesi login tidak
+ter-reset saat container dibuat ulang. Ini tidak memengaruhi integrasi
+Firebase/Midtrans, tetapi perlu diketahui.
 
 ### 11.4 Urutan verifikasi di VPS
 
 1. `http://70.153.142.126:8000/acicu/pre-order` → isi pesanan.
 2. Cek dokumen muncul di Firestore console (koleksi `orders`).
-3. `/acicu/pembayaran` → **Bayar via QRIS** → scan QRIS di
-   <https://simulator.sandbox.midtrans.com/>.
+3. `/acicu/pembayaran` → **Bayar via QRIS** → di sandbox pindai lewat
+   <https://simulator.sandbox.midtrans.com/>; di produksi pakai aplikasi
+   pembayaran sungguhan dengan nominal kecil.
 4. `/acicu/status` dan `/admin/pesanan` menampilkan status **Dibayar**.

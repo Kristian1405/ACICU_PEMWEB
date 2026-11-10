@@ -13,9 +13,10 @@ Firestore + QRIS Midtrans) ke VPS. Asumsi VPS: Linux, sudah terpasang
 1. Siapkan `.env` di VPS (dari `.env.example`).
 2. Taruh **Service Account** Firebase.
 3. Publish **Firestore Rules**.
-4. (Opsional) Set **Notification URL** Midtrans.
-5. `git pull` → `docker compose up -d --build`.
-6. Verifikasi.
+4. `git pull` → `docker compose up -d --build`.
+5. Pasang **Caddy** untuk HTTPS (bagian 10).
+6. Set **Notification URL** Midtrans (wajib untuk produksi).
+7. Verifikasi.
 
 ---
 
@@ -36,12 +37,12 @@ APP_NAME=ACICU
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=                       # lihat cara generate di bawah
-APP_URL=http://70.153.142.126:8000
+APP_URL=https://domain-anda
 
-# Midtrans
-MIDTRANS_CLIENT_KEY=Mid-client-IByVHjrZL9eCFq56
-MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx      # rotasi dulu, lihat catatan
-MIDTRANS_IS_PRODUCTION=false
+# Midtrans (key dari dashboard PRODUKSI, bukan sandbox)
+MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxxxxxx
+MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx      # RAHASIA
+MIDTRANS_IS_PRODUCTION=true
 MIDTRANS_ENABLED_PAYMENTS=other_qris
 
 # Firebase
@@ -64,7 +65,9 @@ php artisan key:generate --show
 Salin hasilnya ke `APP_KEY=` di `.env`. Dengan begitu `APP_KEY` tetap stabil
 (tidak berubah tiap container restart).
 
-> Ganti `APP_URL` bila nanti sudah memakai domain (mis. `https://acicu.example.com`).
+> `APP_URL` **wajib domain HTTPS publik** saat `MIDTRANS_IS_PRODUCTION=true`
+> (mis. `https://acicu.example.com`). Nilai ini dipakai untuk redirect
+> `finish`/`unfinish` Snap. Detail: [PAYMENT-PRODUCTION.md](PAYMENT-PRODUCTION.md).
 
 ---
 
@@ -96,19 +99,22 @@ Atau lewat CLI: `firebase deploy --only firestore:rules`.
 
 ---
 
-## 4. (Opsional) Notification URL Midtrans
+## 4. Notification URL Midtrans (wajib untuk produksi)
 
 Webhook Midtrans **butuh domain + port standar (80/443), bukan IP:8000**.
-Selama belum ada domain, biarkan kosong — verifikasi pembayaran tetap berjalan
-otomatis lewat endpoint `/acicu/pembayaran/verify` (dipicu browser).
+Tanpa webhook, status pembayaran hanya tersinkron lewat fallback
+`/acicu/pembayaran/verify` saat browser memanggilnya — tidak ideal untuk
+transaksi asli karena status bisa tertinggal bila pelanggan menutup browser.
 
-Bila sudah punya domain + HTTPS:
-
-Dashboard Midtrans → Settings → Configuration → **Payment Notification URL**:
+Dashboard **produksi** (<https://dashboard.midtrans.com>) → Settings →
+Configuration → **Payment Notification URL**:
 
 ```
 https://domain-anda/midtrans/notification
 ```
+
+Domain harus sudah punya HTTPS yang valid — pasang Caddy dulu (bagian 10).
+Contoh untuk project ini: `https://acicu.me/midtrans/notification`.
 
 ---
 
@@ -156,7 +162,8 @@ riwayat shell). Untuk otomatis, tambahkan `--password="kata-sandi-kuat"`.
 - [ ] `http://<APP_URL>/` → halaman ACICU tampil.
 - [ ] `/acicu/pre-order` → isi pesanan → muncul di Firestore (koleksi `orders`).
 - [ ] `/acicu/pembayaran` → tombol **Bayar via QRIS** muncul.
-- [ ] Scan QRIS di https://simulator.sandbox.midtrans.com/ → sukses.
+- [ ] Banner halaman pembayaran menunjukkan **MODE PRODUKSI**.
+- [ ] Scan QRIS dengan aplikasi pembayaran sungguhan (nominal kecil) → sukses.
 - [ ] `/acicu/status` menampilkan **Dibayar**.
 - [ ] `/admin/dashboard` → diarahkan ke `/admin/login`; setelah login berhasil masuk dashboard.
 - [ ] `/admin/pesanan` menampilkan pesanan + status (bukan "Firebase belum dikonfigurasi").
@@ -198,5 +205,55 @@ docker compose up -d            # me-restart container dengan env baru
 
 - **Jangan commit** `.env` dan `service-account.json` (sudah di-ignore).
 - **Rotasi Server Key Midtrans** yang pernah dibagikan lewat chat.
+- Jangan mencampur key sandbox dengan `MIDTRANS_IS_PRODUCTION=true`; key
+  sandbox ditolak API produksi (`401`).
 - Batasi **API key Firebase** (HTTP referrers) + aktifkan **App Check**.
 - Aktifkan **HTTPS** (mis. Caddy/Nginx + Let's Encrypt) untuk produksi.
+
+---
+
+## 10. HTTPS dengan Caddy (domain `acicu.me`)
+
+Caddy berjalan di host dan meneruskan request ke aplikasi Docker di
+`127.0.0.1:8000`. Sertifikat Let's Encrypt diurus otomatis.
+
+Prasyarat:
+
+- A record `@` → IP publik VPS.
+- Port **80** dan **443** terbuka di NSG Azure dan firewall host
+  (`sudo ufw allow 80,443/tcp` bila ufw aktif).
+
+Pasang Caddy:
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+Pasang konfigurasi dari repo:
+
+```bash
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+sudo journalctl -u caddy -n 50 --no-pager | grep -i -E "certificate|error"
+```
+
+Isi `deploy/Caddyfile`:
+
+```
+acicu.me {
+	reverse_proxy 127.0.0.1:8000
+}
+```
+
+Verifikasi:
+
+```bash
+curl -I https://acicu.me
+curl -I https://acicu.me/midtrans/notification
+```
+
+Setelah HTTPS terbukti jalan, tutup akses langsung ke port 8000 (NSG rule
+`website`) agar aplikasi hanya bisa diakses lewat 443.
