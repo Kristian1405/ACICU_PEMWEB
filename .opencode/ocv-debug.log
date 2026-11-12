@@ -46,3 +46,5 @@
 [2026-11-10T12:32:37.755Z] [plugin] Server not started (port 5173 in use - another instance is the leader)
 [2026-11-10T12:33:16.171Z] [plugin] Server not started (port 5173 in use - another instance is the leader)
 [2026-11-10T12:33:16.197Z] [plugin] Connected to visualizer server
+[2026-11-12T14:06:43.406Z] [plugin] Server not started (port 5173 in use - another instance is the leader)
+[2026-11-12T14:06:43.409Z] [plugin] Connected to visualizer server

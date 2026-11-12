@@ -72,7 +72,7 @@
             <div id="statusRecipient" class="recipient-info"></div>
 
             <div class="status-actions">
-              <a href="/acicu" class="btn-submit" style="text-align:center;text-decoration:none;">
+              <a href="/" class="btn-submit" style="text-align:center;text-decoration:none;">
                 Kembali ke Beranda
               </a>
               <a class="btn-back" id="btnChatOwner" target="_blank" rel="noopener"
