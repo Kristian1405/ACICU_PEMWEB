@@ -104,7 +104,7 @@
             <button type="button" class="btn-submit" id="btnSubmitOrder">
               Lanjut ke Pembayaran
             </button>
-            <a href="/acicu#menu" class="btn-back">
+            <a href="/#menu" class="btn-back">
               <i class="fa-solid fa-arrow-left"></i> Kembali ke Menu
             </a>
           </section>
