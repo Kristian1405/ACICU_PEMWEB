@@ -27,7 +27,7 @@ return [
     | memisahkan "Signature Secret Key" dari "Server Keys" (API auth),
     | jadi keduanya bisa berbeda. Default: sama dengan server_key.
     */
-    'signature_key' => env('MIDTRANS_SIGNATURE_KEY', env('MIDTRANS_SERVER_KEY')),
+    'signature_key' => env('MIDTRANS_SIGNATURE_KEY') ?: env('MIDTRANS_SERVER_KEY'),
 
     'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
 
