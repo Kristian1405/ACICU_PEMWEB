@@ -385,7 +385,7 @@ class PaymentController extends Controller
      */
     private function isValidSignature(array $payload): bool
     {
-        $serverKey = (string) config('midtrans.server_key');
+        $serverKey = (string) config('midtrans.signature_key');
 
         if ($serverKey === '' || empty($payload['signature_key'])) {
             return false;
