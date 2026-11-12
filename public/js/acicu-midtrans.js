@@ -24,27 +24,9 @@
     return meta ? meta.getAttribute("content") : "";
   }
 
+  /* Hanya order_id yang dikirim. Harga & total dihitung ulang oleh server. */
   function buildPayload(order) {
-    var recipient = order.recipient || {};
-
-    return {
-      order_id: order.id,
-      gross_amount: Number(order.total) || 0,
-      items: (order.items || []).map(function (i) {
-        return {
-          id: i.id,
-          name: i.name,
-          variant: i.variant || "",
-          price: Number(i.price) || 0,
-          quantity: Number(i.qty) || 1,
-        };
-      }),
-      customer: {
-        first_name: recipient.nama || "",
-        phone: recipient.whatsapp || "",
-        address: recipient.alamat || "",
-      },
-    };
+    return { order_id: order.id };
   }
 
   /**
@@ -133,7 +115,7 @@
           window.snap.pay(result.data.token, {
             onSuccess: function () {
               verify(order.id).then(function (data) {
-                var status = data && data.paymentStatus ? data.paymentStatus : "berhasil";
+                var status = data && data.paymentStatus ? data.paymentStatus : "menunggu";
                 if (typeof onResult === "function") onResult(status);
               });
             },

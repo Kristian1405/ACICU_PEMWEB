@@ -108,6 +108,8 @@
     <div class="admin-toast" id="adminToast" role="status" aria-live="polite"></div>
 
     <script src="{{ asset('js/admin.js') }}"></script>
+    <script>window.ACICU_ADMIN = { summaryUrl: @json(route('admin.orders.summary')), ordersUrl: @json(route('admin.orders')) };</script>
+    <script src="{{ asset('js/admin-notify.js') }}"></script>
     @stack('scripts')
   </body>
 </html>

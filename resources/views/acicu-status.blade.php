@@ -75,6 +75,11 @@
               <a href="/acicu" class="btn-submit" style="text-align:center;text-decoration:none;">
                 Kembali ke Beranda
               </a>
+              <a class="btn-back" id="btnChatOwner" target="_blank" rel="noopener"
+                 data-wa="{{ config('acicu.owner_whatsapp') }}"
+                 style="text-align:center;text-decoration:none;">
+                <i class="fa-brands fa-whatsapp"></i> Chat Penjual
+              </a>
               <button class="btn-back" id="btnNewOrder" style="border:none;cursor:pointer;">
                 <i class="fa-solid fa-plus"></i> Buat Pesanan Baru
               </button>

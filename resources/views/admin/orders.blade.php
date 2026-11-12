@@ -26,6 +26,13 @@
     </span>
   </div>
 
+  @if (session('status'))
+    <div class="admin-toolbar"><p class="admin-page-sub" style="color:#1e8449;"><i class="fa-solid fa-circle-check"></i> {{ session('status') }}</p></div>
+  @endif
+  @if (session('error'))
+    <div class="admin-toolbar"><p class="admin-page-sub" style="color:#c0392b;"><i class="fa-solid fa-triangle-exclamation"></i> {{ session('error') }}</p></div>
+  @endif
+
   @if ($error)
     <div class="admin-toolbar">
       <p class="admin-page-sub" style="color:#c0392b;">
@@ -122,14 +129,25 @@
               </td>
               <td><span class="admin-badge {{ $badgeClass }}">{{ $badgeLabel }}</span></td>
               <td>
-                <button
-                  type="button"
-                  class="admin-icon-btn"
-                  title="Detail pesanan"
-                  data-admin-disabled="Halaman detail pesanan belum dibuat. Data sudah tersedia di Firestore."
-                >
-                  <i class="fa-regular fa-eye"></i>
-                </button>
+                @php
+                  $wa = preg_replace('/\D+/', '', (string) ($recipient['whatsapp'] ?? ''));
+                  if (str_starts_with($wa, '0')) { $wa = '62'.substr($wa, 1); }
+                  $fulfillment = $order['fulfillment'] ?? 'baru';
+                @endphp
+                <form method="POST" action="{{ route('admin.orders.status', ['order' => $orderId]) }}" style="display:flex;gap:6px;align-items:center;">
+                  @csrf
+                  <select name="fulfillment" aria-label="Tahap pesanan {{ $orderId }}" onchange="this.form.submit()">
+                    @foreach (['baru' => 'Baru', 'diproses' => 'Diproses', 'dikirim' => 'Dikirim', 'selesai' => 'Selesai', 'dibatalkan' => 'Dibatalkan'] as $value => $label)
+                      <option value="{{ $value }}" @selected($fulfillment === $value)>{{ $label }}</option>
+                    @endforeach
+                  </select>
+                  @if ($wa !== '')
+                    <a class="admin-icon-btn" title="Chat pelanggan via WhatsApp" target="_blank" rel="noopener"
+                       href="https://wa.me/{{ $wa }}?text={{ rawurlencode('Halo kak '.($recipient['nama'] ?? '').', pesanan ACICU '.$orderId.' ') }}">
+                      <i class="fa-brands fa-whatsapp"></i>
+                    </a>
+                  @endif
+                </form>
               </td>
             </tr>
           @empty
@@ -167,7 +185,6 @@
 
   <p class="admin-page-sub">
     <i class="fa-solid fa-circle-info"></i>
-    Status pembayaran diperbarui otomatis oleh webhook Midtrans
-    (<code>POST /midtrans/notification</code>).
+    Status pembayaran diperbarui otomatis oleh Midtrans. Tahap pesanan (Baru/Diproses/Dikirim/Selesai) diubah dari kolom Aksi.
   </p>
 @endsection

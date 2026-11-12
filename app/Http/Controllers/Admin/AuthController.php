@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +49,16 @@ class AuthController extends Controller
         if (! $attempted) {
             throw ValidationException::withMessages([
                 'username' => 'Email/username atau kata sandi salah.',
+            ]);
+        }
+
+        if (! EnsureAdmin::isAdmin(Auth::guard('web')->user())) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'username' => 'Akun ini tidak memiliki akses admin.',
             ]);
         }
 

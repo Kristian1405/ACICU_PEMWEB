@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetTeamUrlDefaults;
@@ -32,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'midtrans/notification',
         ]);
+
+        $middleware->alias(['admin' => EnsureAdmin::class]);
 
         $middleware->web(append: [
             HandleAppearance::class,

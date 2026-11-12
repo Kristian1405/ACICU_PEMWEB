@@ -12,7 +12,7 @@ class AdminDashboardTest extends TestCase
 
     public function test_dashboard_renders_without_firebase(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->get('/admin/dashboard')
             ->assertOk()
             ->assertSee('Total Pesanan');
@@ -20,7 +20,7 @@ class AdminDashboardTest extends TestCase
 
     public function test_reports_renders_without_firebase(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->get('/admin/laporan')
             ->assertOk()
             ->assertSee('Laporan Penjualan');
@@ -28,7 +28,7 @@ class AdminDashboardTest extends TestCase
 
     public function test_reports_accepts_date_filter(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->get('/admin/laporan?from=2026-01-01&to=2026-12-31')
             ->assertOk();
     }

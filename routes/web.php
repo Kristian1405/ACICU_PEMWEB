@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
@@ -12,13 +11,6 @@ use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Models\Product;
 use Illuminate\Support\Facades\Route;
-
-Route::middleware('auth')
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-        Route::resource('contents', ContentController::class);
-    });
 
 Route::get('/', function () {
     return view('acicu', [
@@ -67,10 +59,12 @@ Route::prefix('admin')
             ->middleware('throttle:login')
             ->name('login.attempt');
 
-        Route::middleware('auth')->group(function () {
+        Route::middleware(['auth', 'admin'])->group(function () {
             Route::post('logout', [AuthController::class, 'logout'])->name('logout');
             Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('pesanan', [OrderController::class, 'index'])->name('orders');
+            Route::get('pesanan/ringkasan', [OrderController::class, 'summary'])->name('orders.summary');
+            Route::post('pesanan/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
             Route::get('laporan', [ReportController::class, 'index'])->name('reports');
 
             // Katalog produk: satu sumber data untuk homepage & admin.

@@ -24,7 +24,7 @@ class AdminAuthTest extends TestCase
 
     public function test_admin_can_login_with_email(): void
     {
-        $user = User::factory()->create();
+        $user = $this->adminUser();
 
         $response = $this->post('/admin/login', [
             'username' => $user->email,
@@ -37,7 +37,7 @@ class AdminAuthTest extends TestCase
 
     public function test_admin_can_login_with_name(): void
     {
-        $user = User::factory()->create(['name' => 'Kepala Dapur']);
+        $user = $this->adminUser(['name' => 'Kepala Dapur']);
 
         $this->post('/admin/login', [
             'username' => 'Kepala Dapur',
@@ -49,7 +49,7 @@ class AdminAuthTest extends TestCase
 
     public function test_admin_login_fails_with_wrong_password(): void
     {
-        $user = User::factory()->create();
+        $user = $this->adminUser();
 
         $this->from('/admin/login')
             ->post('/admin/login', [
@@ -64,7 +64,7 @@ class AdminAuthTest extends TestCase
 
     public function test_admin_can_logout(): void
     {
-        $user = User::factory()->create();
+        $user = $this->adminUser();
 
         $this->actingAs($user)
             ->post('/admin/logout')

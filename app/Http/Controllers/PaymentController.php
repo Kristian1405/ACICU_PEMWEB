@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Services\FirestoreService;
 use App\Services\MidtransService;
+use App\Services\OwnerNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,56 +26,103 @@ class PaymentController extends Controller
     public function __construct(
         private readonly MidtransService $midtrans,
         private readonly FirestoreService $firestore,
+        private readonly OwnerNotifier $notifier,
     ) {}
 
     /**
      * POST /acicu/pembayaran/snap
-     * Buat Snap token (QRIS) untuk sebuah pesanan.
+     * Buat Snap token (QRIS). Harga & total DIHITUNG ULANG di server dari
+     * tabel products; nilai harga/total dari browser tidak dipercaya.
      */
     public function snapToken(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'order_id' => ['required', 'string', 'max:64'],
-            'gross_amount' => ['required', 'integer', 'min:1'],
-            'items' => ['nullable', 'array'],
-            'items.*.name' => ['required_with:items', 'string', 'max:100'],
-            'items.*.price' => ['required_with:items', 'integer', 'min:0'],
-            'items.*.quantity' => ['required_with:items', 'integer', 'min:1'],
-            'items.*.variant' => ['nullable', 'string', 'max:100'],
-            'customer' => ['nullable', 'array'],
-            'customer.first_name' => ['nullable', 'string', 'max:100'],
-            'customer.phone' => ['nullable', 'string', 'max:25'],
-            'customer.address' => ['nullable', 'string', 'max:255'],
+            'order_id' => ['required', 'string', 'regex:/^[A-Za-z0-9._-]{1,64}$/'],
         ]);
+        $orderId = $validated['order_id'];
+
+        if (! $this->firestore->isConfigured()) {
+            return response()->json(['message' => 'Penyimpanan pesanan (Firebase) belum dikonfigurasi di server.'], 503);
+        }
+
+        try {
+            $order = $this->firestore->get((string) config('firebase.orders_collection'), $orderId);
+        } catch (\Throwable $e) {
+            Log::error('Firestore baca pesanan gagal', ['order_id' => $orderId, 'error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Gagal membaca pesanan. Coba lagi.'], 502);
+        }
+
+        if (! $order) {
+            return response()->json(['message' => 'Pesanan belum tersimpan. Kembali ke formulir dan ulangi pemesanan.'], 404);
+        }
+
+        if (($order['paymentStatus'] ?? 'menunggu') === 'berhasil') {
+            return response()->json(['message' => 'Pesanan ini sudah dibayar.'], 409);
+        }
+
+        try {
+            [$lines, $total] = $this->priceOrder($order);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        // Pakai ulang token yang masih baru agar tombol bayar bisa dibuka lagi.
+        $existing = $order['payment']['snapToken'] ?? null;
+        $issuedAt = isset($order['payment']['updatedAt']) ? strtotime((string) $order['payment']['updatedAt']) : 0;
+        if ($existing && (int) ($order['payment']['amount'] ?? 0) === $total && $issuedAt > time() - 3600) {
+            return response()->json(['token' => $existing, 'redirect_url' => null]);
+        }
+
+        $recipient = (array) ($order['recipient'] ?? []);
 
         try {
             $result = $this->midtrans->createSnapToken([
-                'order_id' => $validated['order_id'],
-                'gross_amount' => $validated['gross_amount'],
-                'items' => $this->mapItemDetails($validated['items'] ?? []),
-                'customer' => $this->mapCustomerDetails($validated['customer'] ?? []),
+                'order_id' => $orderId,
+                'gross_amount' => $total,
+                'items' => $this->mapItemDetails($lines),
+                'customer' => $this->mapCustomerDetails([
+                    'first_name' => $recipient['nama'] ?? null,
+                    'phone' => $recipient['whatsapp'] ?? null,
+                    'address' => $recipient['alamat'] ?? null,
+                ]),
             ]);
         } catch (\Throwable $e) {
-            Log::error('Midtrans snapToken gagal', [
-                'order_id' => $validated['order_id'],
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Midtrans snapToken gagal', ['order_id' => $orderId, 'error' => $e->getMessage()]);
 
             return response()->json([
-                'message' => 'Gagal membuat transaksi pembayaran. Periksa kredensial Midtrans.',
+                'message' => 'Gagal membuat transaksi pembayaran. Silakan coba lagi atau buat pesanan baru.',
             ], 502);
         }
 
-        // Sinkronisasi ke Firestore (best-effort, tidak menggagalkan pembayaran).
-        $this->persistPaymentMeta($validated['order_id'], [
+        $isNew = empty($existing);
+
+        $this->persistPaymentMeta($orderId, [
+            'items' => array_map(static fn (array $l): array => [
+                'id' => $l['id'], 'name' => $l['name'], 'variant' => $l['variant'],
+                'price' => $l['price'], 'qty' => $l['quantity'],
+            ], $lines),
+            'subtotal' => $total,
+            'ongkir' => 0,
+            'total' => $total,
             'paymentStatus' => 'menunggu',
             'payment' => [
                 'provider' => 'midtrans',
                 'method' => 'qris',
                 'snapToken' => $result['token'],
+                'amount' => $total,
                 'updatedAt' => now()->toIso8601String(),
             ],
         ]);
+
+        if ($isNew) {
+            $this->notifier->notify(sprintf(
+                'Pesanan baru %s dari %s - Rp%s (menunggu pembayaran)',
+                $orderId,
+                $recipient['nama'] ?? '-',
+                number_format($total, 0, ',', '.')
+            ));
+        }
 
         return response()->json([
             'token' => $result['token'],
@@ -96,31 +145,10 @@ class PaymentController extends Controller
         }
 
         $orderId = (string) ($payload['order_id'] ?? '');
-        $status = $this->mapTransactionStatus(
-            (string) ($payload['transaction_status'] ?? ''),
-            (string) ($payload['fraud_status'] ?? '')
-        );
 
         if ($orderId !== '') {
-            $this->persistPaymentMeta($orderId, [
-                'paymentStatus' => $status,
-                'payment' => [
-                    'provider' => 'midtrans',
-                    'method' => $payload['payment_type'] ?? null,
-                    'transactionId' => $payload['transaction_id'] ?? null,
-                    'transactionStatus' => $payload['transaction_status'] ?? null,
-                    'fraudStatus' => $payload['fraud_status'] ?? null,
-                    'grossAmount' => $payload['gross_amount'] ?? null,
-                    'paidAt' => in_array($status, ['berhasil'], true) ? now()->toIso8601String() : null,
-                    'updatedAt' => now()->toIso8601String(),
-                ],
-            ]);
+            $this->applyTransaction($orderId, $payload);
         }
-
-        Log::info('Midtrans notification diterima', [
-            'order_id' => $orderId,
-            'status' => $status,
-        ]);
 
         return response()->json(['message' => 'OK']);
     }
@@ -131,6 +159,10 @@ class PaymentController extends Controller
      */
     public function status(string $order): JsonResponse
     {
+        if (! preg_match('/^[A-Za-z0-9._-]{1,64}$/', $order) || ! $this->firestore->isConfigured()) {
+            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
         $data = $this->firestore->get(config('firebase.orders_collection'), $order);
 
         if (! $data) {
@@ -140,6 +172,7 @@ class PaymentController extends Controller
         return response()->json([
             'order_id' => $order,
             'paymentStatus' => $data['paymentStatus'] ?? 'menunggu',
+            'fulfillment' => $data['fulfillment'] ?? 'baru',
         ]);
     }
 
@@ -152,48 +185,159 @@ class PaymentController extends Controller
     public function verify(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'order_id' => ['required', 'string', 'max:64'],
+            'order_id' => ['required', 'string', 'regex:/^[A-Za-z0-9._-]{1,64}$/'],
         ]);
 
+        $orderId = $validated['order_id'];
+
         try {
-            $transaction = $this->midtrans->getTransactionStatus($validated['order_id']);
+            $transaction = $this->midtrans->getTransactionStatus($orderId);
         } catch (\Throwable $e) {
-            Log::error('Midtrans verify gagal', [
-                'order_id' => $validated['order_id'],
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Midtrans verify gagal', ['order_id' => $orderId, 'error' => $e->getMessage()]);
 
             return response()->json(['message' => 'Gagal memverifikasi status pembayaran.'], 502);
         }
 
-        $paymentStatus = $this->mapTransactionStatus(
-            (string) ($transaction['transaction_status'] ?? ''),
-            (string) ($transaction['fraud_status'] ?? '')
-        );
-
-        $this->persistPaymentMeta($validated['order_id'], [
-            'paymentStatus' => $paymentStatus,
-            'payment' => [
-                'provider' => 'midtrans',
-                'method' => $transaction['payment_type'] ?? 'qris',
-                'transactionId' => $transaction['transaction_id'] ?? null,
-                'transactionStatus' => $transaction['transaction_status'] ?? null,
-                'fraudStatus' => $transaction['fraud_status'] ?? null,
-                'grossAmount' => $transaction['gross_amount'] ?? null,
-                'paidAt' => $paymentStatus === 'berhasil' ? now()->toIso8601String() : null,
-                'updatedAt' => now()->toIso8601String(),
-            ],
-        ]);
+        $status = $this->applyTransaction($orderId, $transaction);
 
         return response()->json([
-            'order_id' => $validated['order_id'],
-            'paymentStatus' => $paymentStatus,
+            'order_id' => $orderId,
+            'paymentStatus' => $status ?? 'menunggu',
         ]);
     }
 
     /* ==============================================================
      |  Helpers
      * ============================================================== */
+
+    /**
+     * Hitung ulang item & total dari tabel products (sumber harga resmi).
+     *
+     * @param  array<string, mixed>  $order
+     * @return array{0: array<int, array{id: string, name: string, variant: string, price: int, quantity: int}>, 1: int}
+     */
+    private function priceOrder(array $order): array
+    {
+        $items = (array) ($order['items'] ?? []);
+
+        if ($items === [] || count($items) > 30) {
+            throw new \InvalidArgumentException('Daftar pesanan tidak valid.');
+        }
+
+        $lines = [];
+        $total = 0;
+
+        foreach ($items as $item) {
+            $item = (array) $item;
+            $qty = (int) ($item['qty'] ?? 0);
+
+            if ($qty < 1 || $qty > 99) {
+                throw new \InvalidArgumentException('Jumlah item tidak valid.');
+            }
+
+            $product = Product::active()->where('slug', (string) ($item['id'] ?? ''))->first();
+
+            if (! $product) {
+                throw new \InvalidArgumentException('Ada produk yang sudah tidak tersedia. Silakan pesan ulang.');
+            }
+
+            $lines[] = [
+                'id' => (string) $product->slug,
+                'name' => (string) $product->name,
+                'variant' => (string) ($item['variant'] ?? ''),
+                'price' => (int) $product->price,
+                'quantity' => $qty,
+            ];
+            $total += (int) $product->price * $qty;
+        }
+
+        if ($total < 1) {
+            throw new \InvalidArgumentException('Total pesanan tidak valid.');
+        }
+
+        return [$lines, $total];
+    }
+
+    /**
+     * Terapkan hasil transaksi Midtrans (webhook / verify) ke pesanan.
+     * Aman terhadap: nominal tidak cocok, notifikasi terlambat, dan duplikat.
+     *
+     * @param  array<string, mixed>  $txn
+     * @return string|null status pesanan setelah diproses (null = tidak ditemukan)
+     */
+    private function applyTransaction(string $orderId, array $txn): ?string
+    {
+        if (! $this->firestore->isConfigured()) {
+            return null;
+        }
+
+        try {
+            $order = $this->firestore->get((string) config('firebase.orders_collection'), $orderId);
+        } catch (\Throwable $e) {
+            Log::error('Firestore baca pesanan gagal', ['order_id' => $orderId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+
+        if (! $order) {
+            Log::warning('Transaksi untuk pesanan yang tidak dikenal', ['order_id' => $orderId]);
+
+            return null;
+        }
+
+        $current = (string) ($order['paymentStatus'] ?? 'menunggu');
+
+        if ((int) round((float) ($txn['gross_amount'] ?? 0)) !== (int) ($order['total'] ?? -1)) {
+            Log::warning('Nominal transaksi tidak cocok dengan pesanan', [
+                'order_id' => $orderId,
+                'midtrans' => $txn['gross_amount'] ?? null,
+                'order' => $order['total'] ?? null,
+            ]);
+
+            return $current;
+        }
+
+        $new = $this->mapTransactionStatus(
+            (string) ($txn['transaction_status'] ?? ''),
+            (string) ($txn['fraud_status'] ?? '')
+        );
+
+        // Jangan menurunkan status: "berhasil" tidak boleh kembali ke menunggu/gagal,
+        // dan pesanan yang sudah refund tetap refund.
+        if (($current === 'berhasil' && in_array($new, ['menunggu', 'gagal'], true))
+            || ($current === 'refund' && $new !== 'refund')) {
+            return $current;
+        }
+
+        $this->persistPaymentMeta($orderId, [
+            'paymentStatus' => $new,
+            'payment' => [
+                'provider' => 'midtrans',
+                'method' => $txn['payment_type'] ?? 'qris',
+                'snapToken' => $order['payment']['snapToken'] ?? null,
+                'amount' => $order['payment']['amount'] ?? (int) ($order['total'] ?? 0),
+                'transactionId' => $txn['transaction_id'] ?? null,
+                'transactionStatus' => $txn['transaction_status'] ?? null,
+                'fraudStatus' => $txn['fraud_status'] ?? null,
+                'grossAmount' => $txn['gross_amount'] ?? null,
+                'paidAt' => $new === 'berhasil'
+                    ? ($order['payment']['paidAt'] ?? now()->toIso8601String())
+                    : ($order['payment']['paidAt'] ?? null),
+                'updatedAt' => now()->toIso8601String(),
+            ],
+        ]);
+
+        if ($new === 'berhasil' && $current !== 'berhasil') {
+            $this->notifier->notify(sprintf(
+                'Pembayaran masuk: %s - %s - Rp%s',
+                $orderId,
+                ($order['recipient']['nama'] ?? '-'),
+                number_format((int) ($order['total'] ?? 0), 0, ',', '.')
+            ));
+        }
+
+        return $new;
+    }
 
     /**
      * @param  array<int, array<string, mixed>>  $items

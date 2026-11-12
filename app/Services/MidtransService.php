@@ -80,7 +80,7 @@ class MidtransService
      */
     public function getTransactionStatus(string $orderId): array
     {
-        $response = $this->request()->get(config('midtrans.api_base_url').'/'.$orderId.'/status');
+        $response = $this->request()->get(config('midtrans.api_base_url').'/'.rawurlencode($orderId).'/status');
 
         if ($response->failed()) {
             throw new RuntimeException(

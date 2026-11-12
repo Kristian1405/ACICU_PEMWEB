@@ -412,15 +412,26 @@
 
         Order.save(order);
 
-        /* Sinkronkan pesanan ke Cloud Firestore (bila dikonfigurasi). */
-        if (window.AcicuFirestore && window.AcicuFirestore.enabled) {
-          window.AcicuFirestore.saveOrder(order);
-        }
-
-        setTimeout(function () {
+        function goToPayment() {
           Cart.clear();
           window.location.href = "/acicu/pembayaran";
-        }, 500);
+        }
+
+        /* Simpan pesanan ke Cloud Firestore; lanjut hanya setelah tersimpan,
+           karena server membaca pesanan ini saat membuat transaksi QRIS. */
+        if (window.AcicuFirestore && window.AcicuFirestore.enabled) {
+          window.AcicuFirestore.saveOrder(order).then(function (ok) {
+            if (ok) {
+              goToPayment();
+              return;
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = "Lanjut ke Pembayaran";
+            alert("Pesanan gagal disimpan. Periksa koneksi internet lalu coba lagi.");
+          });
+        } else {
+          setTimeout(goToPayment, 500);
+        }
       });
     }
   }
@@ -540,6 +551,13 @@
 
     const idEl = document.getElementById("statusOrderId");
     if (idEl) idEl.textContent = order.id;
+
+    const chatEl = document.getElementById("btnChatOwner");
+    if (chatEl && chatEl.dataset.wa) {
+      const msg = "Halo ACICU, saya mau konfirmasi pesanan " + order.id +
+        " atas nama " + ((order.recipient && order.recipient.nama) || "-") + ".";
+      chatEl.href = "https://wa.me/" + chatEl.dataset.wa + "?text=" + encodeURIComponent(msg);
+    }
 
     const itemsEl = document.getElementById("statusOrderItems");
     if (itemsEl) itemsEl.innerHTML = renderItemsHtml(order.items);

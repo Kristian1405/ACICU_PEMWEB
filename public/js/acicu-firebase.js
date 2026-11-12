@@ -67,7 +67,7 @@
         slot: str(delivery.slot),
       },
       kitchenSchedule: str(order.kitchenSchedule),
-      paymentStatus: str(order.paymentStatus || "menunggu"),
+      paymentStatus: "menunggu", /* status pembayaran hanya boleh diubah server */
       source: "web",
       createdAt: order.orderedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -85,7 +85,7 @@
     return db
       .collection(COLLECTION)
       .doc(order.id)
-      .set(toDocument(order), { merge: true })
+      .set(toDocument(order))
       .then(function () {
         return true;
       })

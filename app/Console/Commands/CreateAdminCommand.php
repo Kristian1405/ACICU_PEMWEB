@@ -58,6 +58,10 @@ class CreateAdminCommand extends Command
 
         $this->info("Akun admin siap: {$user->email}");
 
+        if ((array) config('acicu.admin_emails') !== [] && ! in_array(strtolower($user->email), array_map('strtolower', (array) config('acicu.admin_emails')), true)) {
+            $this->warn("PENTING: tambahkan {$user->email} ke ACICU_ADMIN_EMAILS di .env, lalu jalankan: php artisan config:clear");
+        }
+
         return self::SUCCESS;
     }
 }

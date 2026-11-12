@@ -18,7 +18,7 @@ class AdminProductTest extends TestCase
 
     public function test_admin_can_view_product_catalog(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->get('/admin/produk')
             ->assertOk()
             ->assertSee('Ciweng Original Gurih')
@@ -35,7 +35,7 @@ class AdminProductTest extends TestCase
 
     public function test_admin_can_create_product(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->post('/admin/produk', [
                 'title' => 'SEBLAK',
                 'name' => 'Seblak Aci Pedas',
@@ -58,7 +58,7 @@ class AdminProductTest extends TestCase
 
     public function test_product_requires_title_name_and_price(): void
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->from('/admin/produk/create')
             ->post('/admin/produk', [])
             ->assertRedirect('/admin/produk/create')
@@ -69,7 +69,7 @@ class AdminProductTest extends TestCase
     {
         $product = Product::where('slug', 'ciweng')->firstOrFail();
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->put('/admin/produk/'.$product->id, [
                 'title' => $product->title,
                 'name' => 'Ciweng Super Gurih',
@@ -90,7 +90,7 @@ class AdminProductTest extends TestCase
     {
         $product = Product::where('slug', 'cilukba')->firstOrFail();
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($this->adminUser())
             ->delete('/admin/produk/'.$product->id)
             ->assertRedirect('/admin/produk');
 
